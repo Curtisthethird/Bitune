@@ -1,0 +1,94 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  pubkey    String   @id
+  name      String?
+  about     String?
+  picture   String?
+  isArtist  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tracks    Track[]
+  sessions  Session[]
+  wallet    ArtistWallet?
+}
+
+// Replaces ArtistSettings
+model ArtistWallet {
+  pubkey       String   @id
+  encryptedNwc String
+  iv           String   // Initialization vector for AES-GCM
+  authTag      String   // Authentication tag for AES-GCM
+  algoVersion  String   @default("AES-GCM-v1")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  user User @relation(fields: [pubkey], references: [pubkey])
+}
+
+model Track {
+  id           String   @id @default(uuid())
+  title        String
+  artistPubkey String
+  nostrEventId String?  @unique
+  audioUrl     String?
+  createdAt    DateTime @default(now())
+
+  artist   User      @relation(fields: [artistPubkey], references: [pubkey])
+  sessions Session[]
+}
+
+model Session {
+  id              String   @id @default(uuid())
+  trackId         String
+  listenerPubkey  String
+  startTime       DateTime @default(now())
+  creditedSeconds Int      @default(0)
+  eligibleAt      DateTime?
+  lastHeartbeat   DateTime @default(now())
+  lastPositionMs  Int      @default(0)
+  lastClientTs    BigInt   @default(0) // Unix timestamp in ms
+  status          String   @default("ACTIVE") // ACTIVE, COMPLETED
+
+  track    Track @relation(fields: [trackId], references: [id])
+  listener User  @relation(fields: [listenerPubkey], references: [pubkey])
+  
+  payouts   Payout[]
+  poeEvents PoEEvent[]
+
+  @@index([trackId])
+  @@index([listenerPubkey])
+}
+
+model PoEEvent {
+  id           String   @id @default(uuid())
+  nostrEventId String   @unique
+  sessionId    String
+  receivedAt   DateTime @default(now())
+  
+  session Session @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+}
+
+model Payout {
+  id            String   @id @default(uuid())
+  sessionId     String
+  amountSats    Int
+  status        String   // PENDING, COMPLETED, FAILED
+  paymentHash   String?  @unique // Lightning payment hash
+  preimage      String?  // Lightning preimage
+  errorCode     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  session Session @relation(fields: [sessionId], references: [id])
+}
