@@ -8,9 +8,10 @@ import { Track } from '@shared/types';
 import { KeyManager } from '@/lib/nostr/key-manager';
 
 export default function LibraryPage() {
-    const [activeTab, setActiveTab] = useState<'favorites' | 'playlists'>('favorites');
+    const [activeTab, setActiveTab] = useState<'favorites' | 'playlists' | 'owned'>('favorites');
     const [favorites, setFavorites] = useState<Track[]>([]);
     const [playlists, setPlaylists] = useState<any[]>([]);
+    const [ownedTracks, setOwnedTracks] = useState<Track[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -26,7 +27,7 @@ export default function LibraryPage() {
         }
 
         try {
-            // Sign Auth
+            // Sign Auth (Reused for consistent headers, though purchases might be public)
             const event = {
                 kind: 27235,
                 created_at: Math.floor(Date.now() / 1000),
@@ -42,10 +43,7 @@ export default function LibraryPage() {
                 });
                 const data = await res.json();
                 if (data.tracks) setFavorites(data.tracks);
-            } else {
-                // Fetch Playlists (re-using the API from modal for now, ideally dedicated sync)
-                // Note: We need to sign a new event for /api/playlists URL if we are strict.
-                // Let's just create a new auth header for correct route.
+            } else if (activeTab === 'playlists') {
                 const pEvent = { ...event, tags: [['u', window.location.origin + '/api/playlists'], ['method', 'GET']] };
                 const pSigned = await NostrSigner.sign(pEvent);
                 const pToken = btoa(JSON.stringify(pSigned));
@@ -55,6 +53,16 @@ export default function LibraryPage() {
                 });
                 const data = await res.json();
                 if (data.playlists) setPlaylists(data.playlists);
+            } else if (activeTab === 'owned') {
+                // Fetch purchases
+                const res = await fetch(`/api/users/${session.pubkey}/purchases`);
+                if (res.ok) {
+                    const purchases = await res.json();
+                    // Extract tracks from purchases
+                    if (Array.isArray(purchases)) {
+                        setOwnedTracks(purchases.map((p: any) => p.track));
+                    }
+                }
             }
         } catch (e) {
             console.error(e);
@@ -80,6 +88,12 @@ export default function LibraryPage() {
                     >
                         📂 Playlists
                     </button>
+                    <button
+                        className={`tab-btn ${activeTab === 'owned' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('owned')}
+                    >
+                        ⚡ Collection
+                    </button>
                 </div>
             </div>
 
@@ -87,7 +101,7 @@ export default function LibraryPage() {
                 <div className="loading-state">Loading your library...</div>
             ) : (
                 <div className="content">
-                    {activeTab === 'favorites' ? (
+                    {activeTab === 'favorites' && (
                         <>
                             {favorites.length === 0 ? (
                                 <div className="empty-state">No liked tracks yet. Go explore!</div>
@@ -103,7 +117,9 @@ export default function LibraryPage() {
                                 </div>
                             )}
                         </>
-                    ) : (
+                    )}
+
+                    {activeTab === 'playlists' && (
                         <>
                             {playlists.length === 0 ? (
                                 <div className="empty-state">No playlists created yet. Add tracks to create one!</div>
@@ -123,6 +139,24 @@ export default function LibraryPage() {
                                                 <div className="playlist-count">{playlist.count} tracks</div>
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {activeTab === 'owned' && (
+                        <>
+                            {ownedTracks.length === 0 ? (
+                                <div className="empty-state">You haven't purchased any tracks yet. Support artists to build your collection!</div>
+                            ) : (
+                                <div className="grid-layout">
+                                    {ownedTracks.map((track) => (
+                                        <TrackCard
+                                            key={track.id}
+                                            track={track}
+                                            artist={(track as any).artist}
+                                        />
                                     ))}
                                 </div>
                             )}

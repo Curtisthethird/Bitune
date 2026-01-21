@@ -21,6 +21,11 @@ model User {
   wallet    ArtistWallet?
   likes           Like[]
   playlists       Playlist[]
+  
+  followers       Follow[] @relation("UserFollowing")
+  following       Follow[] @relation("UserFollowers")
+  comments        Comment[]
+  purchases       Purchase[]
 }
 
 model Like {
@@ -58,11 +63,14 @@ model Track {
   description  String?
   genre        String?
   explicit     Boolean  @default(false)
+  price        Int      @default(1000) // Minimum price in Sats
   createdAt    DateTime @default(now())
 
   artist   User      @relation(fields: [artistPubkey], references: [pubkey])
   sessions Session[]
   likes    Like[]
+  comments Comment[]
+  purchases Purchase[]
   inPlaylists PlaylistTrack[]
 }
 
@@ -138,4 +146,39 @@ model PlaylistTrack {
   track    Track    @relation(fields: [trackId], references: [id])
 
   @@unique([playlistId, trackId])
+}
+
+model Follow {
+  followerPubkey  String
+  followingPubkey String
+  createdAt       DateTime @default(now())
+
+  follower  User @relation("UserFollowers", fields: [followerPubkey], references: [pubkey])
+  following User @relation("UserFollowing", fields: [followingPubkey], references: [pubkey])
+
+  @@id([followerPubkey, followingPubkey])
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  trackId     String
+  userPubkey  String
+  content     String
+  timestampMs Int
+  createdAt   DateTime @default(now())
+
+  track Track @relation(fields: [trackId], references: [id])
+  user  User  @relation(fields: [userPubkey], references: [pubkey])
+}
+
+model Purchase {
+  id          String   @id @default(uuid())
+  userPubkey  String
+  trackId     String
+  amount      Float
+  currency    String   @default("SATS")
+  createdAt   DateTime @default(now())
+
+  user  User  @relation(fields: [userPubkey], references: [pubkey])
+  track Track @relation(fields: [trackId], references: [id])
 }

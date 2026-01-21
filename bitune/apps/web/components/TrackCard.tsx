@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import Link from 'next/link';
 import { Track } from '@shared/types';
 import { usePlayer } from '@/context/PlayerContext';
 import { NostrSigner } from '@/lib/nostr/signer';
 import { KeyManager } from '@/lib/nostr/key-manager';
 import AddToPlaylistModal from './AddToPlaylistModal';
+import PurchaseModal from './PurchaseModal';
 
 interface TrackCardProps {
     track?: Track; // Optional for placeholder/skeleton
@@ -15,6 +17,7 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
     const { play, currentTrack, isPlaying } = usePlayer();
     const [isLiked, setIsLiked] = useState(false); // Local state for MVP (would sync via context in prod)
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
     // If no track provided, show loading skeleton
     if (!track) {
@@ -105,7 +108,11 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
             <div className="card-content">
                 <div className="track-info-text">
                     <div className="card-title" title={track.title}>{track.title}</div>
-                    <div className="card-artist">{artistName}</div>
+                    <div className="card-artist">
+                        <Link href={`/users/${track.artistPubkey}`} onClick={(e) => e.stopPropagation()} className="artist-link">
+                            {artistName}
+                        </Link>
+                    </div>
                 </div>
                 <div className="card-actions">
                     <button
@@ -114,6 +121,13 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
                         title="Favorite"
                     >
                         ♥
+                    </button>
+                    <button
+                        className="action-btn"
+                        onClick={(e) => { e.stopPropagation(); setShowPurchaseModal(true); }}
+                        title="Buy"
+                    >
+                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>⚡</span>
                     </button>
                     <button
                         className="action-btn playlist-btn"
@@ -129,6 +143,17 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
                 <AddToPlaylistModal
                     trackId={track.id}
                     onClose={() => setShowPlaylistModal(false)}
+                />
+            )}
+
+            {showPurchaseModal && (
+                <PurchaseModal
+                    track={{
+                        ...track,
+                        price: (track as any).price || 1000,
+                        artist: { name: artistName }
+                    }}
+                    onClose={() => setShowPurchaseModal(false)}
                 />
             )}
 
@@ -148,6 +173,10 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .artist-link:hover {
+            color: var(--accent);
+            text-decoration: underline;
         }
         .card-actions {
             display: flex;
