@@ -13,10 +13,12 @@
     "@getalby/sdk": "^7.0.0",
     "@nostr-dev-kit/ndk": "^2.18.1",
     "@prisma/client": "5.10.2",
+    "dotenv": "^17.2.3",
     "next": "16.0.10",
     "nostr-tools": "^2.19.3",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "recharts": "^3.6.0"
   },
   "devDependencies": {
     "@types/node": "^20",

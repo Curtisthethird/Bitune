@@ -9,8 +9,13 @@ export interface Track {
   title: string;
   artistPubkey: string;
   audioUrl?: string; // For MVP locally
-  nostrEventId: string;
+  nostrEventId?: string; // Made optional if creating locally before publishing
+  coverUrl?: string;
+  description?: string;
   createdAt: Date;
+  // UI/Computed fields
+  plays?: number;
+  likes?: number;
 }
 
 export interface Session {

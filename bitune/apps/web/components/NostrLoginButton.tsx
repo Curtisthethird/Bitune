@@ -1,52 +1,45 @@
 'use client';
 
 import { useState } from 'react';
+import AuthModal from './auth/AuthModal';
 
 export default function NostrLoginButton({ onLogin }: { onLogin?: (pubkey: string) => void }) {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [isModalOpen, setModalOpen] = useState(false);
 
-    const handleLogin = async () => {
-        setLoading(true);
-        setError('');
+    const handleLoginSuccess = async (pubkey: string) => {
         try {
-            if (!window.nostr) {
-                throw new Error('Nostr extension not found');
-            }
-            const pubkey = await window.nostr.getPublicKey();
-
-            // Save to DB
+            // Save to DB / Create Session
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pubkey }),
             });
 
-            if (!res.ok) throw new Error('Failed to login');
+            if (!res.ok) throw new Error('Failed to login to backend');
 
-            const data = await res.json();
-
+            // If provided a callback, use it, otherwise reload
             if (onLogin) onLogin(pubkey);
-            else window.location.reload(); // Simple refresh to update state if no callback
+            else window.location.reload();
 
-        } catch (err: any) {
-            console.error(err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
+        } catch (err) {
+            console.error('Login backend sync failed', err);
+            alert('Failed to sync login with server');
         }
     };
 
     return (
-        <div className="nostr-login">
+        <>
             <button
-                onClick={handleLogin}
-                disabled={loading}
+                onClick={() => setModalOpen(true)}
                 style={{ padding: '0.5rem 1rem', background: '#7b16ff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             >
-                {loading ? 'Logging in...' : 'Login with Nostr'}
+                Login / Sign Up
             </button>
-            {error && <p style={{ color: 'red', marginTop: '0.5rem' }}>{error}</p>}
-        </div>
+            <AuthModal
+                isOpen={isModalOpen}
+                onClose={() => setModalOpen(false)}
+                onLogin={handleLoginSuccess}
+            />
+        </>
     );
 }

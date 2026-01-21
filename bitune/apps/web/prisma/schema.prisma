@@ -19,6 +19,20 @@ model User {
   tracks    Track[]
   sessions  Session[]
   wallet    ArtistWallet?
+  likes           Like[]
+  playlists       Playlist[]
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userPubkey String
+  trackId   String
+  createdAt DateTime @default(now())
+
+  user   User  @relation(fields: [userPubkey], references: [pubkey])
+  track  Track @relation(fields: [trackId], references: [id])
+
+  @@unique([userPubkey, trackId])
 }
 
 // Replaces ArtistSettings
@@ -40,10 +54,16 @@ model Track {
   artistPubkey String
   nostrEventId String?  @unique
   audioUrl     String?
+  coverUrl     String?
+  description  String?
+  genre        String?
+  explicit     Boolean  @default(false)
   createdAt    DateTime @default(now())
 
   artist   User      @relation(fields: [artistPubkey], references: [pubkey])
   sessions Session[]
+  likes    Like[]
+  inPlaylists PlaylistTrack[]
 }
 
 model Session {
@@ -91,4 +111,31 @@ model Payout {
   updatedAt     DateTime @updatedAt
 
   session Session @relation(fields: [sessionId], references: [id])
+}
+
+model Playlist {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  coverUrl    String?
+  ownerPubkey String
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner  User            @relation(fields: [ownerPubkey], references: [pubkey])
+  tracks PlaylistTrack[]
+}
+
+model PlaylistTrack {
+  id         String   @id @default(uuid())
+  playlistId String
+  trackId    String
+  position   Int
+  addedAt    DateTime @default(now())
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track    Track    @relation(fields: [trackId], references: [id])
+
+  @@unique([playlistId, trackId])
 }

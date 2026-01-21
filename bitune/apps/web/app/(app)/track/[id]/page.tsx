@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Player from '@/components/Player';
 import { useParams } from 'next/navigation';
+import { NostrSigner } from '../../../../lib/nostr/signer';
 
 export default function TrackPage() {
     const { id } = useParams();
@@ -9,7 +10,7 @@ export default function TrackPage() {
     const [pubkey, setPubkey] = useState('');
 
     useEffect(() => {
-        if (window.nostr) window.nostr.getPublicKey().then(setPubkey).catch(() => { });
+        NostrSigner.getPublicKey().then(setPubkey).catch(() => { });
         if (id) {
             // Fetch specific track. API GET /api/track returns all.
             // I should implement /api/track/[id] or filter on client (MVP).
