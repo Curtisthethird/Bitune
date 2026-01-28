@@ -49,13 +49,13 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
             const event = {
                 kind: 27235,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: [['u', window.location.origin + '/api/like'], ['method', 'POST']],
+                tags: [['u', window.location.origin + '/api/likes'], ['method', 'POST']],
                 content: ''
             };
             const signedEvent = await NostrSigner.sign(event);
             const token = btoa(JSON.stringify(signedEvent));
 
-            const res = await fetch('/api/like', {
+            const res = await fetch('/api/likes', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Nostr ${token}`,

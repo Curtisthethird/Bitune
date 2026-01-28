@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bitune_web_prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/bitune?schema=public
+      - NEXT_PUBLIC_RELAY_URL=wss://relay.damus.io
+      # Add other vars
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15-alpine
+    container_name: bitune_db_prod
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: bitune
+    volumes:
+      - bitune_prod_data:/var/lib/postgresql/data
+
+volumes:
+  bitune_prod_data:

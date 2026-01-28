@@ -1,69 +1,56 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePlayer } from '@/context/PlayerContext';
 import { NostrSigner } from '@/lib/nostr/signer';
 import TrackCard from '@/components/TrackCard';
-import { Track } from '@shared/types';
-import { KeyManager } from '@/lib/nostr/key-manager';
+import Link from 'next/link';
 
 export default function LibraryPage() {
-    const [activeTab, setActiveTab] = useState<'favorites' | 'playlists' | 'owned'>('favorites');
-    const [favorites, setFavorites] = useState<Track[]>([]);
+    const [activeTab, setActiveTab] = useState<'playlists' | 'likes'>('likes');
+    const [likes, setLikes] = useState<any[]>([]);
     const [playlists, setPlaylists] = useState<any[]>([]);
-    const [ownedTracks, setOwnedTracks] = useState<Track[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
-        fetchLibrary();
+        checkAuthAndFetch();
     }, [activeTab]);
 
-    const fetchLibrary = async () => {
-        setLoading(true);
-        const session = KeyManager.getSession();
-        if (!session) {
-            setLoading(false);
-            return;
-        }
-
+    const checkAuthAndFetch = async () => {
         try {
-            // Sign Auth (Reused for consistent headers, though purchases might be public)
+            const pubkey = await NostrSigner.getPublicKey();
+            if (pubkey) {
+                setIsAuthenticated(true);
+                fetchData(activeTab);
+            }
+        } catch (e) {
+            setIsAuthenticated(false);
+            setLoading(false);
+        }
+    };
+
+    const fetchData = async (type: 'playlists' | 'likes') => {
+        setLoading(true);
+        try {
+            const endpoint = type === 'likes' ? '/api/library' : '/api/playlists';
+
             const event = {
                 kind: 27235,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: [['u', window.location.origin + '/api/library'], ['method', 'GET']],
+                tags: [['u', window.location.origin + endpoint], ['method', 'GET']],
                 content: ''
             };
             const signedEvent = await NostrSigner.sign(event);
             const token = btoa(JSON.stringify(signedEvent));
 
-            if (activeTab === 'favorites') {
-                const res = await fetch('/api/library', {
-                    headers: { 'Authorization': `Nostr ${token}` }
-                });
-                const data = await res.json();
-                if (data.tracks) setFavorites(data.tracks);
-            } else if (activeTab === 'playlists') {
-                const pEvent = { ...event, tags: [['u', window.location.origin + '/api/playlists'], ['method', 'GET']] };
-                const pSigned = await NostrSigner.sign(pEvent);
-                const pToken = btoa(JSON.stringify(pSigned));
+            const res = await fetch(endpoint, {
+                headers: { 'Authorization': `Nostr ${token}` }
+            });
+            const data = await res.json();
 
-                const res = await fetch('/api/playlists', {
-                    headers: { 'Authorization': `Nostr ${pToken}` }
-                });
-                const data = await res.json();
-                if (data.playlists) setPlaylists(data.playlists);
-            } else if (activeTab === 'owned') {
-                // Fetch purchases
-                const res = await fetch(`/api/users/${session.pubkey}/purchases`);
-                if (res.ok) {
-                    const purchases = await res.json();
-                    // Extract tracks from purchases
-                    if (Array.isArray(purchases)) {
-                        setOwnedTracks(purchases.map((p: any) => p.track));
-                    }
-                }
-            }
+            if (type === 'likes') setLikes(data.tracks || []);
+            else setPlaylists(data.playlists || []);
+
         } catch (e) {
             console.error(e);
         } finally {
@@ -71,198 +58,85 @@ export default function LibraryPage() {
         }
     };
 
+    if (loading) return <div className="p-12 text-center text-muted">Loading Library...</div>;
+
+    if (!isAuthenticated) return (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
+            <h2 className="text-2xl font-bold mb-4">Your Collection Awaits</h2>
+            <p className="text-muted mb-8 max-w-md">Connect your Nostr extension to access your liked tracks and playlists.</p>
+            <button onClick={checkAuthAndFetch} className="btn-primary">Connect Wallet</button>
+        </div>
+    );
+
     return (
-        <div className="page-container glass-card fade-in">
-            <div className="header">
-                <h1 className="title">Your Library</h1>
-                <div className="tabs">
+        <div className="page-container fade-in">
+            <div className="library-header flex items-center justify-between mb-8">
+                <h1 className="text-4xl font-bold">Your Library</h1>
+                <div className="tabs flex gap-2 p-1 bg-white/5 rounded-full">
                     <button
-                        className={`tab-btn ${activeTab === 'favorites' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('favorites')}
+                        className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'likes' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
+                        onClick={() => setActiveTab('likes')}
                     >
-                        ❤️ Favorites
+                        Liked Tracks
                     </button>
                     <button
-                        className={`tab-btn ${activeTab === 'playlists' ? 'active' : ''}`}
+                        className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'playlists' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
                         onClick={() => setActiveTab('playlists')}
                     >
-                        📂 Playlists
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'owned' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('owned')}
-                    >
-                        ⚡ Collection
+                        Playlists
                     </button>
                 </div>
             </div>
 
-            {loading ? (
-                <div className="loading-state">Loading your library...</div>
-            ) : (
-                <div className="content">
-                    {activeTab === 'favorites' && (
-                        <>
-                            {favorites.length === 0 ? (
-                                <div className="empty-state">No liked tracks yet. Go explore!</div>
-                            ) : (
-                                <div className="grid-layout">
-                                    {favorites.map((track) => (
-                                        <TrackCard
-                                            key={track.id}
-                                            track={track}
-                                            artist={track.artist}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    {activeTab === 'playlists' && (
-                        <>
-                            {playlists.length === 0 ? (
-                                <div className="empty-state">No playlists created yet. Add tracks to create one!</div>
-                            ) : (
-                                <div className="grid-layout">
-                                    {playlists.map((playlist) => (
-                                        <div key={playlist.id} className="playlist-card glass">
-                                            <div className="playlist-art">
-                                                {playlist.coverUrl ? (
-                                                    <img src={playlist.coverUrl} alt={playlist.title} />
-                                                ) : (
-                                                    <div className="playlist-placeholder">🎵</div>
-                                                )}
-                                            </div>
-                                            <div className="playlist-info">
-                                                <div className="playlist-title">{playlist.title}</div>
-                                                <div className="playlist-count">{playlist.count} tracks</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    {activeTab === 'owned' && (
-                        <>
-                            {ownedTracks.length === 0 ? (
-                                <div className="empty-state">You haven't purchased any tracks yet. Support artists to build your collection!</div>
-                            ) : (
-                                <div className="grid-layout">
-                                    {ownedTracks.map((track) => (
-                                        <TrackCard
-                                            key={track.id}
-                                            track={track}
-                                            artist={(track as any).artist}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </>
+            {activeTab === 'likes' && (
+                <div className="likes-view">
+                    {likes.length === 0 ? (
+                        <div className="empty-state text-center py-12 bg-white/5 rounded-xl">
+                            <h3 className="text-xl font-bold mb-2">No likes yet</h3>
+                            <p className="text-muted mb-4">Save tracks you love to build your collection.</p>
+                            <Link href="/feed" className="btn-primary btn-sm inline-flex">Explore Music</Link>
+                        </div>
+                    ) : (
+                        <div className="grid-layout">
+                            {likes.map(track => (
+                                <TrackCard key={track.id} track={track} artist={track.artist} />
+                            ))}
+                        </div>
                     )}
                 </div>
             )}
 
-            <style jsx>{`
-                .page-container {
-                    padding: 2rem;
-                    min-height: 80vh;
-                }
-                .header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 2rem;
-                    flex-wrap: wrap;
-                    gap: 1rem;
-                }
-                .title {
-                    font-size: 2rem;
-                    font-weight: 700;
-                }
-                .tabs {
-                    display: flex;
-                    gap: 1rem;
-                    background: rgba(255,255,255,0.05);
-                    padding: 4px;
-                    border-radius: var(--radius-full);
-                }
-                .tab-btn {
-                    background: none;
-                    border: none;
-                    color: var(--muted);
-                    padding: 0.5rem 1.5rem;
-                    border-radius: var(--radius-full);
-                    cursor: pointer;
-                    font-weight: 600;
-                    transition: all 0.2s;
-                }
-                .tab-btn.active {
-                    background: var(--accent);
-                    color: black;
-                }
-                .tab-btn:hover:not(.active) {
-                    color: var(--foreground);
-                    background: rgba(255,255,255,0.1);
-                }
-                
-                .playlist-card {
-                    padding: 1rem;
-                    border-radius: var(--radius-md);
-                    cursor: pointer;
-                    transition: transform 0.2s;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-                }
-                
-                .playlist-card:hover {
-                    transform: translateY(-4px);
-                    background: rgba(255,255,255,0.08);
-                }
-                
-                .playlist-art {
-                    aspect-ratio: 1;
-                    width: 100%;
-                    background: var(--secondary);
-                    border-radius: var(--radius-sm);
-                    overflow: hidden;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                
-                .playlist-art img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-                
-                .playlist-placeholder {
-                    font-size: 3rem;
-                    opacity: 0.5;
-                }
-                
-                .playlist-title {
-                    font-weight: 700;
-                    font-size: 1.1rem;
-                    margin-bottom: 4px;
-                }
-                
-                .playlist-count {
-                    color: var(--muted);
-                    font-size: 0.9rem;
-                }
-                
-                .empty-state {
-                    text-align: center;
-                    padding: 4rem;
-                    color: var(--muted);
-                    width: 100%;
-                }
-            `}</style>
+            {activeTab === 'playlists' && (
+                <div className="playlists-view">
+                    <div className="flex justify-end mb-6">
+                        <button className="btn-secondary" onClick={() => alert('Create functionality coming next!')}>
+                            + New Playlist
+                        </button>
+                    </div>
+                    {playlists.length === 0 ? (
+                        <div className="empty-state text-center py-12 bg-white/5 rounded-xl">
+                            <h3 className="text-xl font-bold mb-2">No playlists</h3>
+                            <p className="text-muted">Create your first playlist to organize your vibes.</p>
+                        </div>
+                    ) : (
+                        <div className="grid-layout">
+                            {playlists.map(playlist => (
+                                <Link href={`/library/playlist/${playlist.id}`} key={playlist.id} className="playlist-card group">
+                                    <div className="aspect-square bg-zinc-800 rounded-lg overflow-hidden mb-3 relative">
+                                        {playlist.coverUrl ? (
+                                            <img src={playlist.coverUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-4xl bg-zinc-800">💿</div>
+                                        )}
+                                    </div>
+                                    <h3 className="font-bold truncate">{playlist.title}</h3>
+                                    <p className="text-sm text-muted">{playlist.count} tracks</p>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

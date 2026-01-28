@@ -37,68 +37,73 @@ export default function PurchaseModal({ track, onClose, onSuccess }: PurchaseMod
             // 1. Generate Invoice (In a real app, this calls the backend)
             // For launch readiness, we'll simulate the invoice generation and WebLN handshake
             let preimage = null;
-
             if (typeof window !== 'undefined' && (window as any).webln) {
                 try {
                     const webln = (window as any).webln;
                     await webln.enable();
 
-                    // Request an invoice from our backend
+                    // 1. Generate Invoice
                     const invRes = await fetch('/api/purchase/invoice', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ trackId: track.id, amount: amount })
                     });
-                    const { invoice } = await invRes.json();
+                    const invData = await invRes.json();
+                    const invoice = invData.invoice;
 
                     if (!invoice) throw new Error("Failed to generate invoice");
 
-                    // Pay via WebLN
-                    const response = await webln.sendPayment(invoice);
-                    preimage = response.preimage;
-                } catch (weblnError) {
-                    console.error("WebLN failed", weblnError);
-                    // Fallback or alert
-                    throw new Error("Payment failed or was cancelled");
+                    // 2. Pay via WebLN
+                    await webln.sendPayment(invoice);
+
+                    // 3. Sign Event for Verification
+                    const event = {
+                        kind: 27235,
+                        created_at: Math.floor(Date.now() / 1000),
+                        tags: [['u', window.location.origin + '/api/purchase/check'], ['method', 'POST']],
+                        content: ''
+                    };
+                    const signedEvent = await NostrSigner.sign(event);
+                    const token = btoa(JSON.stringify(signedEvent));
+
+                    // 4. Verify on Backend
+                    const res = await fetch('/api/purchase/check', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Nostr ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            trackId: track.id,
+                            invoice: invoice,
+                            paymentHash: invoice
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Verification failed');
+                    }
+
+                    const data = await res.json();
+                    if (data.downloadUrl) {
+                        window.open(data.downloadUrl, '_blank');
+                    }
+
+                    alert(`Successfully purchased ${track.title}!`);
+                    onSuccess?.();
+                    onClose();
+
+                } catch (weblnError: any) {
+                    console.error("Payment flow failed", weblnError);
+                    alert(weblnError.message || "Payment failed");
                 }
+            } else {
+                alert("Please install Alby or a WebLN extension to purchase!");
             }
-
-            // 2. Sign Nostr Event for Authorization
-            const event = {
-                kind: 27235,
-                created_at: Math.floor(Date.now() / 1000),
-                tags: [['u', window.location.origin + '/api/purchase'], ['method', 'POST']],
-                content: ''
-            };
-            const signedEvent = await NostrSigner.sign(event);
-            const token = btoa(JSON.stringify(signedEvent));
-
-            // 3. Confirm Purchase on Backend
-            const res = await fetch('/api/purchase', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Nostr ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    trackId: track.id,
-                    amount: amount,
-                    preimage: preimage // Proof of payment
-                })
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Purchase verification failed');
-            }
-
-            alert(`Successfully purchased ${track.title}!`);
-            onSuccess?.();
-            onClose();
-
         } catch (e: any) {
             console.error(e);
-            alert(e.message || 'Purchase failed');
+            if (!loading) alert(e.message || 'Purchase failed');
         } finally {
             setLoading(false);
         }
