@@ -288,10 +288,13 @@ export default function Player() {
                 }
                 
                 .player-bar.expanded {
-                    height: 400px; /* Expand to show comments */
-                    background: rgba(5,5,5,0.95);
+                    height: 90vh; /* Nearly full screen on mobile */
+                    bottom: 0px !important; /* Override mobile bottom offset */
+                    background: rgba(5,5,5,0.98);
                     justify-content: flex-start;
                     padding-top: 1rem;
+                    z-index: 2000; /* Above everything */
+                    border-top: 1px solid var(--accent);
                 }
                 
                 /* When expanded, keep player-content at top */

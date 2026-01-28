@@ -148,8 +148,15 @@ export default function FeedPage() {
                 
                 .loading-grid {
                      display: grid;
-                     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                     gap: 1.5rem;
+                     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                     gap: 1rem;
+                }
+                
+                @media (min-width: 768px) {
+                    .loading-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                        gap: 1.5rem;
+                    }
                 }
             `}</style>
         </div>

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
         const userPubkey = await verifyNip98Event(authHeader, 'POST', request.url);
 
         const body = await request.json();
-        const { trackId, amount } = body;
+        const { trackId, amount, preimage } = body;
 
         if (!trackId || !amount) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -35,7 +35,8 @@ export async function POST(request: Request) {
                 userPubkey,
                 trackId,
                 amount: parseFloat(amount),
-                currency: 'SATS'
+                currency: 'SATS',
+                // preimage: preimage // We might need to add this to the schema if we want to store it
             }
         });
 

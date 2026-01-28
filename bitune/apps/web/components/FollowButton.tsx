@@ -17,15 +17,19 @@ export default function FollowButton({ targetPubkey, initialIsFollowing = false,
 
     useEffect(() => {
         const session = KeyManager.getSession();
-        if (session && session.pubkey === targetPubkey) {
+
+        // Debug info
+        console.log(`FollowButton [${targetPubkey}] session:`, session?.pubkey);
+
+        if (session && targetPubkey && session.pubkey === targetPubkey) {
             setIsSelf(true);
+        } else {
+            setIsSelf(false);
         }
 
-        // Optimistically set initial state if provided, otherwise fetch
-        // (In a real app we might fetch here if initial is undefined)
         if (initialIsFollowing !== undefined) {
             setIsFollowing(initialIsFollowing);
-        } else {
+        } else if (session) {
             checkFollowStatus(targetPubkey);
         }
     }, [targetPubkey, initialIsFollowing]);
@@ -35,7 +39,6 @@ export default function FollowButton({ targetPubkey, initialIsFollowing = false,
         if (!session) return;
 
         try {
-            // We need to sign to check checking specific user context (is *I* following *THEM*)
             const event = {
                 kind: 27235,
                 created_at: Math.floor(Date.now() / 1000),
@@ -66,10 +69,9 @@ export default function FollowButton({ targetPubkey, initialIsFollowing = false,
 
         setLoading(true);
         const newState = !isFollowing;
-        setIsFollowing(newState); // Optimistic
+        setIsFollowing(newState);
 
         try {
-            // Sign request
             const event = {
                 kind: 27235,
                 created_at: Math.floor(Date.now() / 1000),
@@ -89,12 +91,10 @@ export default function FollowButton({ targetPubkey, initialIsFollowing = false,
             });
 
             if (!res.ok) throw new Error('Failed to toggle follow');
-
             if (onToggle) onToggle(newState);
-
         } catch (err) {
             console.error('Follow toggle error', err);
-            setIsFollowing(!newState); // Revert
+            setIsFollowing(!newState);
             alert('Something went wrong');
         } finally {
             setLoading(false);
@@ -112,38 +112,42 @@ export default function FollowButton({ targetPubkey, initialIsFollowing = false,
             {loading ? '...' : (isFollowing ? 'Following' : 'Follow')}
             <style jsx>{`
                 .follow-btn {
-                    padding: 8px 16px;
-                    border-radius: 20px;
+                    padding: 8px 24px;
+                    border-radius: 100px;
                     border: 1px solid var(--accent);
                     background: transparent;
                     color: var(--accent);
-                    font-weight: 600;
+                    font-weight: 700;
                     cursor: pointer;
-                    transition: all 0.2s;
-                    font-size: 0.9rem;
-                    min-width: 100px;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    font-size: 0.85rem;
+                    min-width: 110px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
                 }
-                .follow-btn:hover {
-                    background: var(--accent-dim);
+                .follow-btn:hover:not(:disabled) {
+                    background: var(--accent);
+                    color: black;
+                    box-shadow: 0 0 15px var(--accent);
+                    transform: scale(1.05);
                 }
                 .follow-btn.following {
                     background: var(--accent);
                     color: black;
+                    border-color: var(--accent);
                 }
-                .follow-btn.following:hover {
-                    background: #ff0000;
-                    border-color: #ff0000;
+                .follow-btn.following:hover:not(:disabled) {
+                    background: #ff3b30;
+                    border-color: #ff3b30;
                     color: white;
+                    box-shadow: 0 0 15px rgba(255, 59, 48, 0.5);
                 }
-                .follow-btn.following:hover::after {
-                    content: "Unfollow"; /* Trick to change text on hover? A bit complex for simple css content replace visually, lets keep simple */
-                }
-                /* Actually let's just keep simple hover styles */
                 .follow-btn:disabled {
-                    opacity: 0.7;
+                    opacity: 0.5;
                     cursor: not-allowed;
                 }
             `}</style>
         </button>
     );
 }
+

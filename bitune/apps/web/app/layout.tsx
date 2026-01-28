@@ -19,8 +19,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BitTune - Decentralized Music Streaming",
-  description: "Stream Music. Earn Bitcoin.",
+  title: {
+    default: "BitTune - Stream Music, Earn Bitcoin",
+    template: "%s | BitTune"
+  },
+  description: "The decentralized music marketplace. Stream your favorite tracks and earn Bitcoin. Direct-to-fan sales and social engagement powered by Nostr.",
+  keywords: ["Bitcoin", "Lightning Network", "Music", "Streaming", "Decentralized", "Nostr", "BitTune"],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://bittune.com",
+    siteName: "BitTune",
+    title: "BitTune - Decentralized Music Streaming",
+    description: "Stream Music. Earn Bitcoin.",
+    images: [
+      {
+        url: "/og-image.png", // We should eventually generate this or use a default
+        width: 1200,
+        height: 630,
+        alt: "BitTune - Earn while you listen",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BitTune - Stream Music, Earn Bitcoin",
+    description: "Direct-to-fan music marketplace on the Lightning Network.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({

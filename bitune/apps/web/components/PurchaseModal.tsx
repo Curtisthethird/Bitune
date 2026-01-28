@@ -34,7 +34,36 @@ export default function PurchaseModal({ track, onClose, onSuccess }: PurchaseMod
 
         setLoading(true);
         try {
-            // 1. Sign Event
+            // 1. Generate Invoice (In a real app, this calls the backend)
+            // For launch readiness, we'll simulate the invoice generation and WebLN handshake
+            let preimage = null;
+
+            if (typeof window !== 'undefined' && (window as any).webln) {
+                try {
+                    const webln = (window as any).webln;
+                    await webln.enable();
+
+                    // Request an invoice from our backend
+                    const invRes = await fetch('/api/purchase/invoice', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ trackId: track.id, amount: amount })
+                    });
+                    const { invoice } = await invRes.json();
+
+                    if (!invoice) throw new Error("Failed to generate invoice");
+
+                    // Pay via WebLN
+                    const response = await webln.sendPayment(invoice);
+                    preimage = response.preimage;
+                } catch (weblnError) {
+                    console.error("WebLN failed", weblnError);
+                    // Fallback or alert
+                    throw new Error("Payment failed or was cancelled");
+                }
+            }
+
+            // 2. Sign Nostr Event for Authorization
             const event = {
                 kind: 27235,
                 created_at: Math.floor(Date.now() / 1000),
@@ -44,7 +73,7 @@ export default function PurchaseModal({ track, onClose, onSuccess }: PurchaseMod
             const signedEvent = await NostrSigner.sign(event);
             const token = btoa(JSON.stringify(signedEvent));
 
-            // 2. Call API
+            // 3. Confirm Purchase on Backend
             const res = await fetch('/api/purchase', {
                 method: 'POST',
                 headers: {
@@ -53,13 +82,14 @@ export default function PurchaseModal({ track, onClose, onSuccess }: PurchaseMod
                 },
                 body: JSON.stringify({
                     trackId: track.id,
-                    amount: amount
+                    amount: amount,
+                    preimage: preimage // Proof of payment
                 })
             });
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.error || 'Purchase failed');
+                throw new Error(err.error || 'Purchase verification failed');
             }
 
             alert(`Successfully purchased ${track.title}!`);

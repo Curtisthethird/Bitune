@@ -1,5 +1,8 @@
 export interface User {
   pubkey: string;
+  name?: string;
+  picture?: string;
+  about?: string;
   isArtist: boolean;
   createdAt: Date;
 }
@@ -12,6 +15,9 @@ export interface Track {
   nostrEventId?: string; // Made optional if creating locally before publishing
   coverUrl?: string;
   description?: string;
+  durationMs?: number;
+  genre?: string;
+  explicit?: boolean;
   createdAt: Date;
   // UI/Computed fields
   plays?: number;

@@ -1,96 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
-  pubkey    String   @id
-  name      String?
+  pubkey    String        @id
+  isArtist  Boolean       @default(false)
+  createdAt DateTime      @default(now())
   about     String?
+  name      String?
   picture   String?
-  isArtist  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tracks    Track[]
-  sessions  Session[]
+  updatedAt DateTime      @updatedAt
   wallet    ArtistWallet?
-  likes           Like[]
-  playlists       Playlist[]
-  
-  followers       Follow[] @relation("UserFollowing")
-  following       Follow[] @relation("UserFollowers")
-  comments        Comment[]
-  purchases       Purchase[]
+  comments  Comment[]
+  following Follow[]      @relation("UserFollowers")
+  followers Follow[]      @relation("UserFollowing")
+  likes     Like[]
+  playlists Playlist[]
+  purchases Purchase[]
+  sessions  Session[]
+  tracks    Track[]
 }
 
 model Like {
-  id        String   @id @default(uuid())
+  id         String   @id @default(uuid())
   userPubkey String
-  trackId   String
-  createdAt DateTime @default(now())
-
-  user   User  @relation(fields: [userPubkey], references: [pubkey])
-  track  Track @relation(fields: [trackId], references: [id])
+  trackId    String
+  createdAt  DateTime @default(now())
+  track      Track    @relation(fields: [trackId], references: [id])
+  user       User     @relation(fields: [userPubkey], references: [pubkey])
 
   @@unique([userPubkey, trackId])
 }
 
-// Replaces ArtistSettings
 model ArtistWallet {
   pubkey       String   @id
   encryptedNwc String
-  iv           String   // Initialization vector for AES-GCM
-  authTag      String   // Authentication tag for AES-GCM
+  iv           String
+  authTag      String
   algoVersion  String   @default("AES-GCM-v1")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
-  user User @relation(fields: [pubkey], references: [pubkey])
+  user         User     @relation(fields: [pubkey], references: [pubkey])
 }
 
 model Track {
-  id           String   @id @default(uuid())
+  id           String          @id @default(uuid())
   title        String
   artistPubkey String
-  nostrEventId String?  @unique
+  nostrEventId String?         @unique
   audioUrl     String?
+  createdAt    DateTime        @default(now())
   coverUrl     String?
   description  String?
+  explicit     Boolean         @default(false)
   genre        String?
-  explicit     Boolean  @default(false)
-  price        Int      @default(1000) // Minimum price in Sats
-  createdAt    DateTime @default(now())
-
-  artist   User      @relation(fields: [artistPubkey], references: [pubkey])
-  sessions Session[]
-  likes    Like[]
-  comments Comment[]
-  purchases Purchase[]
-  inPlaylists PlaylistTrack[]
+  price        Int             @default(1000)
+  comments     Comment[]
+  likes        Like[]
+  inPlaylists  PlaylistTrack[]
+  purchases    Purchase[]
+  sessions     Session[]
+  artist       User            @relation(fields: [artistPubkey], references: [pubkey])
 }
 
 model Session {
-  id              String   @id @default(uuid())
+  id              String     @id @default(uuid())
   trackId         String
   listenerPubkey  String
-  startTime       DateTime @default(now())
-  creditedSeconds Int      @default(0)
+  startTime       DateTime   @default(now())
+  creditedSeconds Int        @default(0)
   eligibleAt      DateTime?
-  lastHeartbeat   DateTime @default(now())
-  lastPositionMs  Int      @default(0)
-  lastClientTs    BigInt   @default(0) // Unix timestamp in ms
-  status          String   @default("ACTIVE") // ACTIVE, COMPLETED
-
-  track    Track @relation(fields: [trackId], references: [id])
-  listener User  @relation(fields: [listenerPubkey], references: [pubkey])
-  
-  payouts   Payout[]
-  poeEvents PoEEvent[]
+  lastHeartbeat   DateTime   @default(now())
+  lastClientTs    BigInt     @default(0)
+  lastPositionMs  Int        @default(0)
+  status          String     @default("ACTIVE")
+  payouts         Payout[]
+  poeEvents       PoEEvent[]
+  listener        User       @relation(fields: [listenerPubkey], references: [pubkey])
+  track           Track      @relation(fields: [trackId], references: [id])
 
   @@index([trackId])
   @@index([listenerPubkey])
@@ -101,38 +93,35 @@ model PoEEvent {
   nostrEventId String   @unique
   sessionId    String
   receivedAt   DateTime @default(now())
-  
-  session Session @relation(fields: [sessionId], references: [id])
+  session      Session  @relation(fields: [sessionId], references: [id])
 
   @@index([sessionId])
 }
 
 model Payout {
-  id            String   @id @default(uuid())
-  sessionId     String
-  amountSats    Int
-  status        String   // PENDING, COMPLETED, FAILED
-  paymentHash   String?  @unique // Lightning payment hash
-  preimage      String?  // Lightning preimage
-  errorCode     String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  session Session @relation(fields: [sessionId], references: [id])
+  id          String   @id @default(uuid())
+  sessionId   String
+  amountSats  Int
+  status      String
+  createdAt   DateTime @default(now())
+  errorCode   String?
+  paymentHash String?  @unique
+  preimage    String?
+  updatedAt   DateTime @updatedAt
+  session     Session  @relation(fields: [sessionId], references: [id])
 }
 
 model Playlist {
-  id          String   @id @default(uuid())
+  id          String          @id @default(uuid())
   title       String
   description String?
   coverUrl    String?
   ownerPubkey String
-  isPublic    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  owner  User            @relation(fields: [ownerPubkey], references: [pubkey])
-  tracks PlaylistTrack[]
+  isPublic    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  owner       User            @relation(fields: [ownerPubkey], references: [pubkey])
+  tracks      PlaylistTrack[]
 }
 
 model PlaylistTrack {
@@ -141,9 +130,8 @@ model PlaylistTrack {
   trackId    String
   position   Int
   addedAt    DateTime @default(now())
-
-  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
-  track    Track    @relation(fields: [trackId], references: [id])
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id])
 
   @@unique([playlistId, trackId])
 }
@@ -152,9 +140,8 @@ model Follow {
   followerPubkey  String
   followingPubkey String
   createdAt       DateTime @default(now())
-
-  follower  User @relation("UserFollowers", fields: [followerPubkey], references: [pubkey])
-  following User @relation("UserFollowing", fields: [followingPubkey], references: [pubkey])
+  follower        User     @relation("UserFollowers", fields: [followerPubkey], references: [pubkey])
+  following       User     @relation("UserFollowing", fields: [followingPubkey], references: [pubkey])
 
   @@id([followerPubkey, followingPubkey])
 }
@@ -166,19 +153,17 @@ model Comment {
   content     String
   timestampMs Int
   createdAt   DateTime @default(now())
-
-  track Track @relation(fields: [trackId], references: [id])
-  user  User  @relation(fields: [userPubkey], references: [pubkey])
+  track       Track    @relation(fields: [trackId], references: [id])
+  user        User     @relation(fields: [userPubkey], references: [pubkey])
 }
 
 model Purchase {
-  id          String   @id @default(uuid())
-  userPubkey  String
-  trackId     String
-  amount      Float
-  currency    String   @default("SATS")
-  createdAt   DateTime @default(now())
-
-  user  User  @relation(fields: [userPubkey], references: [pubkey])
-  track Track @relation(fields: [trackId], references: [id])
+  id         String   @id @default(uuid())
+  userPubkey String
+  trackId    String
+  amount     Float
+  currency   String   @default("SATS")
+  createdAt  DateTime @default(now())
+  track      Track    @relation(fields: [trackId], references: [id])
+  user       User     @relation(fields: [userPubkey], references: [pubkey])
 }
