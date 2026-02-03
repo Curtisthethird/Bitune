@@ -22,7 +22,6 @@ async function main() {
             data: {
                 title: 'Neon Nights',
                 artistPubkey: artist.pubkey,
-                durationMs: 180000,
                 genre: 'Synthwave'
             }
         });

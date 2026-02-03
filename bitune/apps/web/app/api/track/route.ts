@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { verifyNostrEvent } from '@/lib/nostr/events';
-import { KIND_TRACK_METADATA } from '@shared/constants';
-
-const prisma = new PrismaClient();
+import { KIND_TRACK_METADATA } from '@/lib/shared/constants';
 
 export async function POST(request: Request) {
     try {
@@ -33,13 +31,20 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q');
+    const pubkey = searchParams.get('pubkey');
 
-    const where = q ? {
-        OR: [
-            { title: { contains: q, mode: 'insensitive' as const } }, // 'as const' helps TS inference for Prisma
+    const where: any = {};
+
+    if (pubkey) {
+        where.artistPubkey = pubkey;
+    }
+
+    if (q) {
+        where.OR = [
+            { title: { contains: q, mode: 'insensitive' as const } },
             { artist: { name: { contains: q, mode: 'insensitive' as const } } }
-        ]
-    } : {};
+        ];
+    }
 
     const tracks = await prisma.track.findMany({
         where,

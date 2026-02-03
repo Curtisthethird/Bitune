@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { verifyNip98Event } from '@/lib/nostr/nip98';
 import { decrypt } from '@/lib/lightning/crypto';
 import { NWC } from '@/lib/nwc';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
     try {
@@ -46,13 +44,11 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             message: `Withdrawal of ${amountSats} sats initiated`,
-            invoice: invoice.paymentRequest
+            invoice: invoice.invoice
         });
 
     } catch (error: any) {
         console.error('Withdraw Error', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
-    } finally {
-        await prisma.$disconnect();
     }
 }

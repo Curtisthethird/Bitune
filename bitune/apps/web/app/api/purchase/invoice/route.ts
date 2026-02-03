@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { verifyNip98Event } from '@/lib/nostr/nip98';
 import { NWC } from '@/lib/nwc';
 import { decrypt } from '@/lib/lightning/crypto';
@@ -15,7 +14,7 @@ import { decrypt } from '@/lib/lightning/crypto';
 // 6. User pays invoice (using their own wallet/extension).
 // 7. Server (or Client) polls for status. Once paid, grant download access.
 
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
     try {
@@ -47,7 +46,7 @@ export async function POST(request: Request) {
         // Yes, Alby NWC supports make_invoice.
         const invoice = await NWC.createInvoice(nwcUrl, track.price / 1000, `Purchase: ${track.title}`);
 
-        if (!invoice.paymentRequest) {
+        if (!invoice.invoice) {
             throw new Error('Failed to generate invoice');
         }
 

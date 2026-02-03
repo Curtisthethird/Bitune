@@ -4,7 +4,16 @@ const prisma = new PrismaClient();
 
 async function main() {
     console.log('Seeding database...');
-    // Add seed data here if needed
+    await prisma.user.upsert({
+        where: { pubkey: 'npub1artist' },
+        update: {},
+        create: {
+            pubkey: 'npub1artist',
+            name: 'Neon Artist',
+            isArtist: true,
+            about: 'Electronic music producer from the future.'
+        }
+    });
     console.log('Seeding finished.');
 }
 

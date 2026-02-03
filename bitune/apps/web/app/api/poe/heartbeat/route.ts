@@ -9,8 +9,7 @@ import {
     POE_HEARTBEAT_SECONDS,
     POE_ELIGIBLE_SECONDS
 } from '@/lib/poe/rules';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
     try {

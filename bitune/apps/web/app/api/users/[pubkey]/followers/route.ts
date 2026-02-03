@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
     request: Request,
-    { params }: { params: { pubkey: string } }
+    { params }: { params: Promise<{ pubkey: string }> }
 ) {
-    const { pubkey } = params;
+    const { pubkey } = await params;
 
     try {
         const followers = await prisma.follow.findMany({

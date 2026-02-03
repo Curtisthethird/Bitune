@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { verifyNip98Event } from '@/lib/nostr/nip98';
-
-const prisma = new PrismaClient();
 
 // GET /api/playlists/[id]: Get full playlist details with tracks
 export async function GET(

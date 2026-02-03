@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { verifyNip98Event } from '@/lib/nostr/nip98';
 import { NWC } from '@/lib/nwc';
 import { decrypt } from '@/lib/lightning/crypto';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
     try {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
-import { Track } from '@shared/types';
+import { Track } from '@/lib/shared/types';
 import { usePlayer } from '@/context/PlayerContext';
 import { NostrSigner } from '@/lib/nostr/signer';
 import { KeyManager } from '@/lib/nostr/key-manager';

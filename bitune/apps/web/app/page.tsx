@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 // Styles moved to globals.css
 import TrackCard from '@/components/TrackCard';
-import { Track } from '@shared/types';
+import { Track } from '@/lib/shared/types';
 
 // Extended Track type for API response which might include 'artist' object
 interface ApiTrack extends Track {

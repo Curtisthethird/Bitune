@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { uploadAudioFile } from '@/lib/storage/storage';
 import { verifyNip98Event } from '@/lib/nostr/nip98';
 import { uploadLimiter } from '@/lib/ratelimit';
+import { prisma } from '@/lib/prisma';
 
 // Force nodejs runtime for local fs access if needed (Next.js is usually ok, but 'nodejs' ensures it)
 export const runtime = 'nodejs';
-
-const prisma = new PrismaClient();
 
 const ALLOWED_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/aac', 'audio/ogg', 'audio/x-m4a'];
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];

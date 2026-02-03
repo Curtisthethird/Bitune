@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { verifyNip98Event } from '@/lib/nostr/nip98';
 import { decrypt } from '@/lib/lightning/crypto';
 import { NWC } from '@/lib/nwc';
-
-const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
     try {
@@ -43,7 +41,5 @@ export async function GET(request: Request) {
     } catch (error: any) {
         console.error('Wallet Get Error', error);
         return NextResponse.json({ error: error.message }, { status: 401 });
-    } finally {
-        await prisma.$disconnect();
     }
 }

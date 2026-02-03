@@ -33,7 +33,6 @@ export default function TipModal({ artist, onClose }: TipModalProps) {
                     const webln = (window as any).webln;
                     await webln.enable();
 
-                    // 1. Get Tip Invoice (via our server acting as NWC proxy)
                     const event = {
                         kind: 27235,
                         created_at: Math.floor(Date.now() / 1000),
@@ -59,7 +58,6 @@ export default function TipModal({ artist, onClose }: TipModalProps) {
 
                     if (!invoice) throw new Error("Failed to generate invoice");
 
-                    // 2. Pay via WebLN
                     await webln.sendPayment(invoice);
 
                     alert(`Sent ${amount} sats to ${artist.name || 'Artist'}!`);
@@ -81,50 +79,202 @@ export default function TipModal({ artist, onClose }: TipModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold">Tip {artist.name || 'Artist'}</h3>
-                    <button onClick={onClose} className="text-zinc-400 hover:text-white">✕</button>
+        <div className="tip-modal-overlay" onClick={onClose}>
+            <div className="tip-modal-content" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h3>Tip {artist.name || 'Artist'}</h3>
+                    <button onClick={onClose} className="close-btn">✕</button>
                 </div>
 
-                <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">Amount (Sats)</label>
+                <div className="input-section">
+                    <label>Amount (Sats)</label>
                     <input
                         type="number"
                         min="1"
                         value={amount}
                         onChange={e => setAmount(Number(e.target.value))}
-                        className="w-full bg-black/20 border border-zinc-700 rounded px-3 py-2 text-lg font-bold"
+                        className="amount-input"
                     />
-                    <div className="flex gap-2 mt-2">
+                    <div className="presets">
                         {[100, 500, 1000, 5000].map(val => (
-                            <button key={val} onClick={() => setAmount(val)} className="text-xs bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded">
-                                ⚡ {val}
+                            <button key={val} onClick={() => setAmount(val)} className="preset-btn">
+                                ⚡ {val.toLocaleString()}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <div className="mb-6">
-                    <label className="block text-sm font-medium mb-1">Message (Optional)</label>
+                <div className="input-section">
+                    <label>Message (Optional)</label>
                     <input
                         type="text"
                         value={message}
                         onChange={e => setMessage(e.target.value)}
                         placeholder="Say something nice..."
-                        className="w-full bg-black/20 border border-zinc-700 rounded px-3 py-2 text-sm"
+                        className="message-input"
                     />
                 </div>
 
                 <button
                     onClick={handleTip}
                     disabled={loading}
-                    className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="tip-submit-btn"
                 >
-                    {loading ? 'Sending...' : `Send ${amount} Sats ⚡`}
+                    {loading ? 'Sending...' : `Send ${amount.toLocaleString()} Sats ⚡`}
                 </button>
             </div>
+
+            <style jsx>{`
+                .tip-modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 3000;
+                    background: rgba(0, 0, 0, 0.85);
+                    backdrop-filter: blur(8px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 1rem;
+                    animation: fadeIn 0.3s ease;
+                }
+
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                .tip-modal-content {
+                    background: #111;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 20px;
+                    width: 100%;
+                    max-width: 400px;
+                    padding: 2rem;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                }
+
+                @keyframes scaleUp {
+                    from { transform: scale(0.9); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 2rem;
+                }
+
+                .modal-header h3 {
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: #fff;
+                }
+
+                .close-btn {
+                    background: transparent;
+                    border: none;
+                    color: rgba(255, 255, 255, 0.5);
+                    font-size: 1.2rem;
+                    cursor: pointer;
+                    transition: color 0.2s;
+                }
+
+                .close-btn:hover {
+                    color: #fff;
+                }
+
+                .input-section {
+                    margin-bottom: 1.5rem;
+                }
+
+                .input-section label {
+                    display: block;
+                    font-size: 0.85rem;
+                    color: rgba(255, 255, 255, 0.6);
+                    margin-bottom: 0.75rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                .amount-input, .message-input {
+                    width: 100%;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    padding: 1rem;
+                    border-radius: 12px;
+                    color: #fff;
+                    font-family: inherit;
+                    font-size: 1.1rem;
+                    transition: all 0.2s;
+                }
+
+                .amount-input {
+                    font-weight: 800;
+                    font-size: 1.5rem;
+                    color: var(--accent);
+                }
+
+                .amount-input:focus, .message-input:focus {
+                    outline: none;
+                    border-color: var(--accent);
+                    background: rgba(255, 255, 255, 0.08);
+                }
+
+                .presets {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 0.5rem;
+                    margin-top: 0.75rem;
+                }
+
+                .preset-btn {
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    color: #fff;
+                    padding: 0.5rem;
+                    border-radius: 8px;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .preset-btn:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-color: var(--accent);
+                }
+
+                .tip-submit-btn {
+                    width: 100%;
+                    padding: 1.25rem;
+                    background: var(--accent);
+                    color: #000;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 1.1rem;
+                    font-weight: 800;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    margin-top: 1rem;
+                }
+
+                .tip-submit-btn:hover:not(:disabled) {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 20px rgba(247, 147, 26, 0.3);
+                }
+
+                .tip-submit-btn:active {
+                    transform: translateY(0);
+                }
+
+                .tip-submit-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+            `}</style>
         </div>
     );
 }

@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { verifyNip98Event } from '@/lib/nostr/nip98';
-
-const prisma = new PrismaClient();
 
 // GET /api/likes/check?trackId=...
 export async function GET(request: Request) {

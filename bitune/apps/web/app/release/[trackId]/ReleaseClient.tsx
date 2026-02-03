@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import PurchaseModal from '@/components/PurchaseModal';
-import { Track } from '@shared/types';
+import { Track } from '@/lib/shared/types';
 
 interface Supporter {
     user: {

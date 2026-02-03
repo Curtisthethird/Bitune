@@ -1,5 +1,5 @@
-import { Session } from '@shared/types';
-import { POE_ELIGIBILITY_THRESHOLD_SECONDS } from '@shared/constants';
+import { Session } from '@/lib/shared/types';
+import { POE_ELIGIBILITY_THRESHOLD_SECONDS } from '@/lib/shared/constants';
 
 export function isEligible(session: Session): boolean {
     if (!session) return false;
