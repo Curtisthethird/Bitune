@@ -106,12 +106,12 @@ export default function TipModal({ artist, onClose }: TipModalProps) {
 
                 <div className="input-section">
                     <label>Message (Optional)</label>
-                    <input
-                        type="text"
+                    <textarea
                         value={message}
                         onChange={e => setMessage(e.target.value)}
-                        placeholder="Say something nice..."
+                        placeholder="Send a message to the artist..."
                         className="message-input"
+                        rows={3}
                     />
                 </div>
 
@@ -207,8 +207,9 @@ export default function TipModal({ artist, onClose }: TipModalProps) {
                     border-radius: 12px;
                     color: #fff;
                     font-family: inherit;
-                    font-size: 1.1rem;
+                    font-size: 1rem;
                     transition: all 0.2s;
+                    resize: none;
                 }
 
                 .amount-input {

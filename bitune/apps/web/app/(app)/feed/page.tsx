@@ -73,7 +73,7 @@ export default function FeedPage() {
                             <h2 className="section-title">{section.title}</h2>
                             <p className="section-subtitle">{section.subtitle}</p>
                         </div>
-                        <Link href={`/search?q=${section.id}`} className="view-all">View All</Link>
+                        <Link href={`/discovery/${section.id}`} className="view-all">View All</Link>
                     </div>
 
                     <div className={section.type === 'artist' ? 'artist-grid' : 'grid-layout'}>

@@ -24,6 +24,8 @@ model User {
   purchases Purchase[]
   sessions  Session[]
   tracks    Track[]
+  tipsSent  Tip[]    @relation("UserTipsSent")
+  tipsRecv  Tip[]    @relation("UserTipsReceived")
 }
 
 model Like {
@@ -166,4 +168,18 @@ model Purchase {
   createdAt  DateTime @default(now())
   track      Track    @relation(fields: [trackId], references: [id])
   user       User     @relation(fields: [userPubkey], references: [pubkey])
+}
+
+model Tip {
+  id           String   @id @default(uuid())
+  amountSats   Int
+  message      String?
+  senderPubkey String
+  artistPubkey String
+  status       String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  paymentHash  String?  @unique
+  createdAt    DateTime @default(now())
+
+  sender User @relation("UserTipsSent", fields: [senderPubkey], references: [pubkey])
+  artist User @relation("UserTipsReceived", fields: [artistPubkey], references: [pubkey])
 }
