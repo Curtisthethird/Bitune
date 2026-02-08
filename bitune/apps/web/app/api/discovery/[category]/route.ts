@@ -25,17 +25,18 @@ export async function GET(
                 type = 'track';
                 [items, total] = await Promise.all([
                     prisma.track.findMany({
+                        where: { isFlagged: false },
                         take: limit,
                         skip: skip,
                         orderBy: { createdAt: 'desc' },
                         include: {
                             artist: {
-                                select: { name: true, picture: true, pubkey: true }
+                                select: { name: true, picture: true, pubkey: true, isVerified: true }
                             },
                             _count: { select: { likes: true, sessions: true } }
                         }
                     }),
-                    prisma.track.count()
+                    prisma.track.count({ where: { isFlagged: false } })
                 ]);
                 break;
 
@@ -50,11 +51,27 @@ export async function GET(
                         skip: skip,
                         orderBy: { followers: { _count: 'desc' } },
                         include: {
-                            _count: { select: { followers: true, tracks: true } }
+                            _count: { select: { followers: true, tracks: true } },
                         }
                     }),
                     prisma.user.count({ where: { isArtist: true } })
                 ]);
+                // Map verified status if needed, or select it
+                // Re-fetching or selecting is better
+                items = await prisma.user.findMany({
+                    where: { isArtist: true },
+                    take: limit,
+                    skip: skip,
+                    orderBy: { followers: { _count: 'desc' } },
+                    select: {
+                        name: true,
+                        picture: true,
+                        pubkey: true,
+                        isVerified: true,
+                        _count: { select: { followers: true, tracks: true } }
+                    }
+                });
+                total = await prisma.user.count({ where: { isArtist: true } });
                 break;
 
             case 'top-charts':
@@ -63,17 +80,18 @@ export async function GET(
                 type = 'track';
                 [items, total] = await Promise.all([
                     prisma.track.findMany({
+                        where: { isFlagged: false },
                         take: limit,
                         skip: skip,
                         orderBy: { sessions: { _count: 'desc' } },
                         include: {
                             artist: {
-                                select: { name: true, picture: true, pubkey: true }
+                                select: { name: true, picture: true, pubkey: true, isVerified: true }
                             },
                             _count: { select: { likes: true, sessions: true } }
                         }
                     }),
-                    prisma.track.count()
+                    prisma.track.count({ where: { isFlagged: false } })
                 ]);
                 break;
 

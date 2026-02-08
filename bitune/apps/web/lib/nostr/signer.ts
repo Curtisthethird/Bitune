@@ -55,5 +55,24 @@ export const NostrSigner = {
         if (window.nostr) return await window.nostr.getPublicKey();
 
         throw new Error('No user connected');
+    },
+
+    /**
+     * Generates a NIP-98 Authorization header
+     */
+    generateAuthHeader: async (method: string, url: string): Promise<string> => {
+        const event = {
+            kind: 27235,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [
+                ['u', url],
+                ['method', method.toUpperCase()]
+            ],
+            content: ''
+        };
+
+        const signedEvent = await NostrSigner.sign(event);
+        const token = btoa(JSON.stringify(signedEvent));
+        return `Nostr ${token}`;
     }
 };

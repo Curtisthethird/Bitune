@@ -30,26 +30,62 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const q = searchParams.get('q');
     const pubkey = searchParams.get('pubkey');
+    const category = searchParams.get('category');
+    const sort = searchParams.get('sort') || 'new'; // 'new' or 'hot'
 
-    const where: any = {};
+    try {
+        let tracks;
+        const baseWhere: any = { isFlagged: false };
 
-    if (pubkey) {
-        where.artistPubkey = pubkey;
+        if (pubkey) baseWhere.artistPubkey = pubkey;
+        if (category && category !== 'all') baseWhere.genre = category;
+
+        if (sort === 'hot') {
+            // Hot: Most sessions in current week
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+
+            const sessionCounts = await prisma.session.groupBy({
+                by: ['trackId'],
+                where: { startTime: { gte: weekAgo } },
+                _count: { id: true },
+                orderBy: { _count: { id: 'desc' } },
+                take: 20
+            });
+
+            const hotTrackIds = sessionCounts.map(s => s.trackId);
+
+            tracks = await prisma.track.findMany({
+                where: {
+                    ...baseWhere,
+                    id: { in: hotTrackIds }
+                },
+                include: {
+                    artist: {
+                        select: { name: true, picture: true, isVerified: true }
+                    }
+                }
+            });
+            // Re-sort by the session count order
+            tracks.sort((a, b) => hotTrackIds.indexOf(a.id) - hotTrackIds.indexOf(b.id));
+
+        } else {
+            // New: Classic chronological
+            tracks = await prisma.track.findMany({
+                where: baseWhere,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    artist: {
+                        select: { name: true, picture: true, isVerified: true }
+                    }
+                }
+            });
+        }
+
+        return NextResponse.json({ tracks });
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json({ error: 'Error fetching tracks' }, { status: 500 });
     }
-
-    if (q) {
-        where.OR = [
-            { title: { contains: q, mode: 'insensitive' as const } },
-            { artist: { name: { contains: q, mode: 'insensitive' as const } } }
-        ];
-    }
-
-    const tracks = await prisma.track.findMany({
-        where,
-        include: { artist: true },
-        orderBy: { createdAt: 'desc' }
-    });
-    return NextResponse.json({ tracks });
 }

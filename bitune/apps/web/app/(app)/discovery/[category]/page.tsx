@@ -26,17 +26,19 @@ export default function DiscoveryCategoryPage({ params }: { params: Promise<{ ca
     const [loadingMore, setLoadingMore] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [sort, setSort] = useState('new');
 
     useEffect(() => {
+        setPage(1);
         fetchData(1);
-    }, [category]);
+    }, [category, sort]);
 
     const fetchData = async (pageNum: number) => {
         try {
             if (pageNum === 1) setLoading(true);
             else setLoadingMore(true);
 
-            const res = await fetch(`/api/discovery/${category}?page=${pageNum}&limit=20`);
+            const res = await fetch(`/api/discovery/${category}?page=${pageNum}&limit=20&sort=${sort}`);
             const data = await res.json();
 
             if (data.error) throw new Error(data.error);
@@ -110,6 +112,31 @@ export default function DiscoveryCategoryPage({ params }: { params: Promise<{ ca
             )}
 
             <style jsx>{`
+                .sort-controls {
+                    display: flex;
+                    gap: 0.5rem;
+                    background: rgba(255,255,255,0.05);
+                    padding: 0.25rem;
+                    border-radius: 100px;
+                }
+
+                .sort-btn {
+                    padding: 0.5rem 1.5rem;
+                    border-radius: 100px;
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                    color: var(--muted);
+                    transition: all 0.2s;
+                    border: none;
+                    background: transparent;
+                    cursor: pointer;
+                }
+
+                .sort-btn.active {
+                    background: var(--accent);
+                    color: black;
+                }
+
                 .discovery-page {
                     padding: 2rem;
                     max-width: 1400px;

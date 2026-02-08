@@ -250,6 +250,34 @@ export default function Player() {
         }
     };
 
+    const handleReport = async () => {
+        if (!track) return;
+        if (!confirm('Are you sure you want to report this content for violating community standards?')) return;
+
+        try {
+            const authHeader = await NostrSigner.generateAuthHeader('POST', window.location.origin + '/api/track/report');
+
+            const res = await fetch('/api/track/report', {
+                method: 'POST',
+                headers: {
+                    'Authorization': authHeader,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ trackId: track.id, reason: 'Manual report from player' })
+            });
+
+            if (res.ok) {
+                alert('Thank you. Content has been flagged for review.');
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Failed to report content');
+            }
+        } catch (e) {
+            console.error('Report failed', e);
+            alert('An error occurred while reporting.');
+        }
+    };
+
     const handlePurchaseSuccess = async () => {
         if (!track) return;
         try {
@@ -351,6 +379,14 @@ export default function Player() {
                                 <span style={{ fontSize: '1.2rem' }}>⚡</span>
                             </button>
                         )}
+                        <button
+                            className="control-btn report-btn"
+                            onClick={handleReport}
+                            title="Report content"
+                            style={{ fontSize: '1.1rem', opacity: 0.5 }}
+                        >
+                            🚩
+                        </button>
                     </div>
                 </div>
 

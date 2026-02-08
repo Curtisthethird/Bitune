@@ -32,4 +32,10 @@ export class RateLimiter {
 export const uploadLimiter = new RateLimiter(5, 3600);
 
 // 10 profile updates per hour per user
-export const profileLimiter = new RateLimiter(10, 3600); 
+export const profileLimiter = new RateLimiter(10, 3600);
+
+// Treasury Protection: 1 payout request per minute per session/user
+export const payoutLimiter = new RateLimiter(1, 60);
+
+// Metadata/Social: 100 comments/likes per hour per user
+export const socialLimiter = new RateLimiter(100, 3600);

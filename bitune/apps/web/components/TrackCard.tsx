@@ -11,7 +11,7 @@ import PurchaseModal from './PurchaseModal';
 interface TrackCardProps {
     track?: Track; // Optional for placeholder/skeleton
     index?: number;
-    artist?: { name?: string; picture?: string };
+    artist?: { name?: string; picture?: string; isVerified?: boolean };
 }
 
 export default function TrackCard({ track, index, artist }: TrackCardProps) {
@@ -117,6 +117,9 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
                     <div className="card-artist">
                         <Link href={`/users/${track.artistPubkey}`} onClick={(e) => e.stopPropagation()} className="artist-link">
                             {artistName}
+                            {artist?.isVerified && (
+                                <span className="verified-badge" title="Verified Artist" style={{ marginLeft: '4px', fontSize: '0.75rem' }}>✅</span>
+                            )}
                         </Link>
                     </div>
                 </div>

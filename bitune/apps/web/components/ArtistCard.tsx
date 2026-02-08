@@ -10,6 +10,7 @@ interface ArtistCardProps {
         name?: string;
         picture?: string;
         about?: string;
+        isVerified?: boolean;
     };
     followerCount?: number;
 }
@@ -31,7 +32,12 @@ export default function ArtistCard({ artist, followerCount = 0 }: ArtistCardProp
                 <img src={avatar} alt={displayName} className="artist-avatar" />
             </div>
             <div className="artist-info">
-                <h3 className="artist-name">{displayName}</h3>
+                <h3 className="artist-name">
+                    {displayName}
+                    {artist.isVerified && (
+                        <span className="verified-badge-inline" style={{ marginLeft: '6px', fontSize: '1rem' }}>✅</span>
+                    )}
+                </h3>
                 <div className="artist-stats">
                     <span className="stat-item">Artist</span>
                     {followerCount > 0 && (

@@ -10,6 +10,7 @@ datasource db {
 model User {
   pubkey    String        @id
   isArtist  Boolean       @default(false)
+  isVerified Boolean      @default(false)
   createdAt DateTime      @default(now())
   about     String?
   name      String?
@@ -60,6 +61,7 @@ model Track {
   coverUrl     String?
   description  String?
   explicit     Boolean         @default(false)
+  isFlagged    Boolean         @default(false)
   genre        String?
   price        Int             @default(1000)
   comments     Comment[]

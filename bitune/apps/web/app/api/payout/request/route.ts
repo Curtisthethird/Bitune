@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createNwcClient, createTreasuryClient, generateInvoice, payInvoice } from '@/lib/lightning/nwc';
+import { payoutLimiter } from '@/lib/ratelimit';
 
 /**
  * @section 7: deterministic function for compensation calculation.
