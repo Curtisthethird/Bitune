@@ -6,8 +6,9 @@ import TrackCard from '@/components/TrackCard';
 import Link from 'next/link';
 
 export default function LibraryPage() {
-    const [activeTab, setActiveTab] = useState<'playlists' | 'likes'>('likes');
+    const [activeTab, setActiveTab] = useState<'playlists' | 'likes' | 'purchases'>('likes');
     const [likes, setLikes] = useState<any[]>([]);
+    const [purchases, setPurchases] = useState<any[]>([]);
     const [playlists, setPlaylists] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -29,10 +30,13 @@ export default function LibraryPage() {
         }
     };
 
-    const fetchData = async (type: 'playlists' | 'likes') => {
+    const fetchData = async (type: 'playlists' | 'likes' | 'purchases') => {
         setLoading(true);
         try {
-            const endpoint = type === 'likes' ? '/api/library' : '/api/playlists';
+            let endpoint = '';
+            if (type === 'likes') endpoint = '/api/library?type=likes';
+            else if (type === 'purchases') endpoint = '/api/library?type=purchases';
+            else endpoint = '/api/playlists';
 
             const event = {
                 kind: 27235,
@@ -49,6 +53,7 @@ export default function LibraryPage() {
             const data = await res.json();
 
             if (type === 'likes') setLikes(data.tracks || []);
+            else if (type === 'purchases') setPurchases(data.tracks || []);
             else setPlaylists(data.playlists || []);
 
         } catch (e) {
@@ -63,24 +68,30 @@ export default function LibraryPage() {
     if (!isAuthenticated) return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
             <h2 className="text-2xl font-bold mb-4">Your Collection Awaits</h2>
-            <p className="text-muted mb-8 max-w-md">Connect your Nostr extension to access your liked tracks and playlists.</p>
+            <p className="text-muted mb-8 max-w-md">Connect your Nostr extension to access your liked tracks, purchases, and playlists.</p>
             <button onClick={checkAuthAndFetch} className="btn-primary">Connect Wallet</button>
         </div>
     );
 
     return (
         <div className="page-container fade-in">
-            <div className="library-header flex items-center justify-between mb-8">
+            <div className="library-header flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <h1 className="text-4xl font-bold">Your Library</h1>
-                <div className="tabs flex gap-2 p-1 bg-white/5 rounded-full">
+                <div className="tabs flex gap-2 p-1 bg-white/5 rounded-full overflow-x-auto">
                     <button
-                        className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'likes' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
+                        className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'likes' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
                         onClick={() => setActiveTab('likes')}
                     >
                         Liked Tracks
                     </button>
                     <button
-                        className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'playlists' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
+                        className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'purchases' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
+                        onClick={() => setActiveTab('purchases')}
+                    >
+                        Purchased
+                    </button>
+                    <button
+                        className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'playlists' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
                         onClick={() => setActiveTab('playlists')}
                     >
                         Playlists
@@ -100,6 +111,24 @@ export default function LibraryPage() {
                         <div className="grid-layout">
                             {likes.map(track => (
                                 <TrackCard key={track.id} track={track} artist={track.artist} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'purchases' && (
+                <div className="purchases-view">
+                    {purchases.length === 0 ? (
+                        <div className="empty-state text-center py-12 bg-white/5 rounded-xl">
+                            <h3 className="text-xl font-bold mb-2">Your collection is empty</h3>
+                            <p className="text-muted mb-4">Support artists directly to unlock and own their music.</p>
+                            <Link href="/feed" className="btn-primary btn-sm inline-flex">Browse Tracks</Link>
+                        </div>
+                    ) : (
+                        <div className="grid-layout">
+                            {purchases.map(track => (
+                                <TrackCard key={track.id} track={{ ...track, hasPurchased: true }} artist={track.artist} />
                             ))}
                         </div>
                     )}

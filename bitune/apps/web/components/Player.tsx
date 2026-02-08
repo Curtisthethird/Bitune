@@ -8,6 +8,8 @@ import { NostrSigner } from '@/lib/nostr/signer';
 import Waveform from './Waveform';
 import EngagementRing from './EngagementRing';
 import TipModal from './TipModal';
+import PurchaseModal from './PurchaseModal';
+import SupporterBadge from './SupporterBadge';
 
 export default function Player() {
     const {
@@ -29,6 +31,7 @@ export default function Player() {
     const [newComment, setNewComment] = useState('');
     const [isPosting, setIsPosting] = useState(false);
     const [showTipModal, setShowTipModal] = useState(false);
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
     // Player Preference State
     const [volume, setVolume] = useState(0.8);
@@ -247,18 +250,45 @@ export default function Player() {
         }
     };
 
+    const handlePurchaseSuccess = async () => {
+        if (!track) return;
+        try {
+            const res = await fetch(`/api/tracks/${track.id}`);
+            if (res.ok) {
+                const updatedTrack = await res.json();
+                play(updatedTrack); // This will update the current track in context
+            }
+        } catch (e) {
+            console.error("Failed to refresh track after purchase", e);
+        }
+    };
+
     const handleTimeUpdate = () => {
-        if (!audioRef.current) return;
+        if (!audioRef.current || !track) return;
         const cur = audioRef.current.currentTime;
         const dur = audioRef.current.duration;
+
+        // Gating Logic: 30s preview for non-purchased tracks
+        if (track.price && track.price > 0 && !track.hasPurchased && cur >= 30) {
+            audioRef.current.currentTime = 30;
+            pause();
+            setShowPurchaseModal(true);
+        }
+
         setCurrentTime(cur);
         setDuration(dur);
         setProgress((cur / dur) * 100);
     };
 
     const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!audioRef.current || !duration) return;
-        const newTime = (Number(e.target.value) / 100) * duration;
+        if (!audioRef.current || !duration || !track) return;
+        let newTime = (Number(e.target.value) / 100) * duration;
+
+        // Prevent seeking past preview limit
+        if (track.price && track.price > 0 && !track.hasPurchased && newTime > 30) {
+            newTime = 30;
+        }
+
         audioRef.current.currentTime = newTime;
         setProgress(Number(e.target.value));
     };
@@ -296,7 +326,10 @@ export default function Player() {
                         </div>
                     </EngagementRing>
                     <div className="track-details">
-                        <div className="track-title" title={track.title}>{track.title}</div>
+                        <div className="track-title" title={track.title}>
+                            {track.title}
+                            {track.hasPurchased && <span className="ml-2" title="Owned">💎</span>}
+                        </div>
                         <div className="artist-name">{track.artist?.name || 'Unknown Artist'}</div>
                         {poeActive && (
                             <div className="poe-badge">
@@ -305,9 +338,20 @@ export default function Player() {
                             </div>
                         )}
                     </div>
-                    <button className="control-btn tip-btn" onClick={() => setShowTipModal(true)} title="Tip Artist">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l3-8z" /></svg>
-                    </button>
+                    <div className="player-extra-actions">
+                        <button className="control-btn tip-btn" onClick={() => setShowTipModal(true)} title="Tip Artist">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l3-8z" /></svg>
+                        </button>
+                        {track.price && track.price > 0 && !track.hasPurchased && (
+                            <button
+                                className="control-btn purchase-btn"
+                                onClick={() => setShowPurchaseModal(true)}
+                                title={`Unlock for ${track.price} Sats`}
+                            >
+                                <span style={{ fontSize: '1.2rem' }}>⚡</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="waveform-wrapper">
@@ -438,7 +482,11 @@ export default function Player() {
                                     <div key={c.id} className="comment-item">
                                         <div className="comment-avatar"><img src={c.user?.picture || '/default-avatar.png'} /></div>
                                         <div className="comment-body">
-                                            <div className="comment-author">{c.user?.name || 'User'} <span className="comment-time">{formatTime((c.timestampMs || 0) / 1000)}</span></div>
+                                            <div className="comment-author">
+                                                {c.user?.name || 'User'}
+                                                {c.supporterLevel && <SupporterBadge level={c.supporterLevel} />}
+                                                <span className="comment-time">{formatTime((c.timestampMs || 0) / 1000)}</span>
+                                            </div>
                                             <div className="comment-text">{c.content}</div>
                                         </div>
                                     </div>
@@ -486,6 +534,18 @@ export default function Player() {
                 <TipModal
                     artist={{ pubkey: track.artistPubkey, name: track.artist?.name }}
                     onClose={() => setShowTipModal(false)}
+                />
+            )}
+
+            {showPurchaseModal && track && (
+                <PurchaseModal
+                    track={{
+                        ...track,
+                        price: track.price || 1000,
+                        artist: { name: track.artist?.name || 'Unknown Artist' }
+                    }}
+                    onClose={() => setShowPurchaseModal(false)}
+                    onSuccess={handlePurchaseSuccess}
                 />
             )}
 
@@ -656,12 +716,28 @@ export default function Player() {
                 
                 .tip-btn {
                     color: var(--accent);
-                    margin-left: 0.5rem;
                 }
                 .tip-btn:hover {
                     color: #fff !important;
                     background: var(--accent) !important;
                     box-shadow: 0 0 15px var(--accent-dim);
+                }
+
+                .purchase-btn {
+                    color: var(--accent);
+                    margin-left: -0.5rem;
+                }
+                
+                .purchase-btn:hover {
+                    transform: scale(1.2);
+                    color: #fff;
+                }
+
+                .player-extra-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    margin-left: 0.5rem;
                 }
 
                 .count-badge {

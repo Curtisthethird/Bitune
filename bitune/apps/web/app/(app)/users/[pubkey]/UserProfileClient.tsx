@@ -5,6 +5,7 @@ import FollowButton from '@/components/FollowButton';
 import TipModal from '@/components/TipModal';
 import { usePlayer } from '@/context/PlayerContext';
 import { Track } from '@/lib/shared/types';
+import SupporterBadge from '@/components/SupporterBadge';
 
 interface UserProfile {
     pubkey: string;
@@ -27,6 +28,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
     const { pubkey } = use(params);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [tracks, setTracks] = useState<TrackWithArtist[]>([]);
+    const [supporters, setSupporters] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showTipModal, setShowTipModal] = useState(false);
     const { play } = usePlayer();
@@ -35,6 +37,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
         if (pubkey) {
             fetchProfile();
             fetchTracks();
+            fetchSupporters();
         }
     }, [pubkey]);
 
@@ -58,6 +61,18 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
             if (res.ok) {
                 const data = await res.json();
                 setTracks(data.tracks);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchSupporters = async () => {
+        try {
+            const res = await fetch(`/api/supporters?artistPubkey=${pubkey}`);
+            if (res.ok) {
+                const data = await res.json();
+                setSupporters(data);
             }
         } catch (err) {
             console.error(err);
@@ -176,6 +191,36 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
                 </main>
 
                 <aside className="profile-sidebar">
+                    {profile.isArtist && (
+                        <div className="sidebar-card glass-card supporters-card mb-6">
+                            <h3>Top Supporters</h3>
+                            <div className="supporters-list">
+                                {supporters.length === 0 ? (
+                                    <div className="no-data-sm">No supporters yet. Be the first!</div>
+                                ) : (
+                                    supporters.map((s, i) => (
+                                        <div key={s.user.pubkey} className="supporter-row">
+                                            <div className="supporter-rank">
+                                                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                                            </div>
+                                            <div className="supporter-avatar-sm">
+                                                <img src={s.user.picture || '/default-avatar.png'} alt={s.user.name} />
+                                            </div>
+                                            <div className="supporter-info-sm">
+                                                <div className="supporter-name-sm">{s.user.name || 'Anonymous'}</div>
+                                                <div className="supporter-amount-sm">{s.totalSats.toLocaleString()} Sats</div>
+                                            </div>
+                                            {i < 3 && <SupporterBadge level={i === 0 ? 'patron' : 'superfan'} />}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                            <button className="btn-text w-full mt-4 text-xs font-bold uppercase tracking-wider opacity-60 hover:opacity-100">
+                                View Full Leaderboard
+                            </button>
+                        </div>
+                    )}
+
                     <div className="sidebar-card glass-card">
                         <h3>About</h3>
                         <p>{profile.about || 'No additional information shared.'}</p>
@@ -519,6 +564,84 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
                 .social-val {
                     color: #fff;
                     font-weight: 600;
+                }
+
+                .supporters-card h3 {
+                    margin-bottom: 1.5rem !important;
+                }
+
+                .supporters-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+
+                .supporter-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    padding: 0.5rem;
+                    border-radius: 8px;
+                    background: rgba(255, 255, 255, 0.02);
+                    transition: all 0.2s;
+                }
+
+                .supporter-row:hover {
+                    background: rgba(255, 255, 255, 0.05);
+                }
+
+                .supporter-rank {
+                    width: 24px;
+                    font-size: 0.8rem;
+                    font-weight: 800;
+                    color: var(--muted);
+                }
+
+                .supporter-avatar-sm {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    overflow: hidden;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+
+                .supporter-avatar-sm img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+
+                .supporter-info-sm {
+                    flex: 1;
+                }
+
+                .supporter-name-sm {
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .supporter-amount-sm {
+                    font-size: 0.7rem;
+                    color: var(--muted);
+                }
+
+                .no-data-sm {
+                    text-align: center;
+                    font-size: 0.85rem;
+                    color: var(--muted);
+                    padding: 2rem 0;
+                    font-style: italic;
+                }
+
+                .btn-text {
+                    background: transparent;
+                    border: none;
+                    color: var(--accent);
+                    cursor: pointer;
+                    font-size: 0.75rem;
                 }
 
                 @media (max-width: 1100px) {

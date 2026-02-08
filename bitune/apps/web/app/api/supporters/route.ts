@@ -3,39 +3,68 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const trackId = searchParams.get('trackId');
+    const artistPubkey = searchParams.get('artistPubkey');
 
-    if (!trackId) {
-        return NextResponse.json({ error: 'Missing trackId' }, { status: 400 });
+    if (!artistPubkey) {
+        return NextResponse.json({ error: 'Missing artistPubkey' }, { status: 400 });
     }
 
     try {
+        // 1. Get all purchases for this artist's tracks
         const purchases = await prisma.purchase.findMany({
-            where: { trackId },
-            include: {
-                user: {
-                    select: {
-                        pubkey: true,
-                        name: true,
-                        picture: true
-                    }
+            where: {
+                track: {
+                    artistPubkey: artistPubkey
                 }
             },
-            orderBy: { amount: 'desc' }, // Top supporters first
-            take: 50
+            include: {
+                user: {
+                    select: { name: true, picture: true, pubkey: true }
+                }
+            }
         });
 
-        // Transform to just return user info + amount
-        const supporters = purchases.map(p => ({
-            user: p.user,
-            amount: p.amount,
-            createdAt: p.createdAt
-        }));
+        // 2. Get all tips for this artist
+        const tips = await prisma.tip.findMany({
+            where: {
+                artistPubkey: artistPubkey,
+                status: 'COMPLETED'
+            },
+            include: {
+                sender: {
+                    select: { name: true, picture: true, pubkey: true }
+                }
+            }
+        });
 
-        return NextResponse.json(supporters);
+        // 3. Aggregate support by user
+        const supportMap = new Map<string, { user: any, totalSats: number, count: number }>();
+
+        purchases.forEach(p => {
+            const userId = p.userPubkey;
+            const existing = supportMap.get(userId) || { user: p.user, totalSats: 0, count: 0 };
+            existing.totalSats += p.amount;
+            existing.count += 1;
+            supportMap.set(userId, existing);
+        });
+
+        tips.forEach(t => {
+            const userId = t.senderPubkey;
+            const existing = supportMap.get(userId) || { user: t.sender, totalSats: 0, count: 0 };
+            existing.totalSats += t.amountSats;
+            existing.count += 1;
+            supportMap.set(userId, existing);
+        });
+
+        // 4. Convert to array, sort, and limit
+        const leaderboard = Array.from(supportMap.values())
+            .sort((a, b) => b.totalSats - a.totalSats)
+            .slice(0, 10);
+
+        return NextResponse.json(leaderboard);
 
     } catch (error) {
-        console.error('Fetch supporters error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        console.error('Supporters API Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

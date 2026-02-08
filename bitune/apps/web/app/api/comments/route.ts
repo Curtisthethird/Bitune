@@ -52,6 +52,12 @@ export async function GET(request: Request) {
     }
 
     try {
+        // Get track and artist first to check for tips
+        const track = await prisma.track.findUnique({
+            where: { id: trackId },
+            select: { artistPubkey: true }
+        });
+
         const comments = await prisma.comment.findMany({
             where: { trackId },
             include: {
@@ -60,7 +66,18 @@ export async function GET(request: Request) {
                         pubkey: true,
                         name: true,
                         picture: true,
-                        isArtist: true
+                        isArtist: true,
+                        purchases: {
+                            where: { trackId },
+                            select: { id: true }
+                        },
+                        tipsSent: {
+                            where: {
+                                artistPubkey: track?.artistPubkey,
+                                status: 'COMPLETED'
+                            },
+                            select: { id: true }
+                        }
                     }
                 }
             },
@@ -69,7 +86,19 @@ export async function GET(request: Request) {
             }
         });
 
-        return NextResponse.json(comments);
+        // Map comments to include supporter status
+        const commentsWithBadges = comments.map(c => {
+            let supporterLevel: 'fan' | 'superfan' | null = null;
+            if (c.user.purchases.length > 0) supporterLevel = 'superfan';
+            else if (c.user.tipsSent.length > 0) supporterLevel = 'fan';
+
+            return {
+                ...c,
+                supporterLevel
+            };
+        });
+
+        return NextResponse.json(commentsWithBadges);
 
     } catch (error) {
         console.error('Fetch comments error:', error);

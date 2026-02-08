@@ -26,6 +26,8 @@ export interface Track {
         name?: string;
         picture?: string;
     };
+    price?: number;
+    hasPurchased?: boolean;
 }
 
 export interface Session {

@@ -105,6 +105,11 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
                 <div className={`play-overlay ${isActive ? 'active' : ''}`}>
                     {isActive ? '⏸' : '▶'}
                 </div>
+                {track.hasPurchased && (
+                    <div className="owned-badge" title="You own this track">
+                        💎
+                    </div>
+                )}
             </div>
             <div className="card-content">
                 <div className="track-info-text">
@@ -123,13 +128,25 @@ export default function TrackCard({ track, index, artist }: TrackCardProps) {
                     >
                         ♥
                     </button>
-                    <button
-                        className="action-btn"
-                        onClick={(e) => { e.stopPropagation(); setShowPurchaseModal(true); }}
-                        title="Buy"
-                    >
-                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>⚡</span>
-                    </button>
+                    {!track.hasPurchased && track.price && track.price > 0 && (
+                        <button
+                            className="action-btn"
+                            onClick={(e) => { e.stopPropagation(); setShowPurchaseModal(true); }}
+                            title={`Unlock for ${track.price} Sats`}
+                        >
+                            <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>⚡</span>
+                        </button>
+                    )}
+                    {track.hasPurchased && (
+                        <button
+                            className="action-btn owned"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Owned"
+                            style={{ color: 'var(--accent)', cursor: 'default' }}
+                        >
+                            <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>✔️</span>
+                        </button>
+                    )}
                     <button
                         className="action-btn playlist-btn"
                         onClick={openPlaylistModal}
