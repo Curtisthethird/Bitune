@@ -1,3 +1,9 @@
+/**
+ * @api Heartbeat Endpoint
+ * @compliance Section 5: Verification Server and Anti-Fraud Logic
+ * @compliance Section 6: Engagement Accumulation and Threshold
+ */
+
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import {

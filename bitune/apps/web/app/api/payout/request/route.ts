@@ -1,12 +1,31 @@
+/**
+ * @api Payout Request Endpoint
+ * @compliance Section 7: Compensation Calculation
+ * @compliance Section 8: Lightning Network Payment Execution
+ */
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createNwcClient, createTreasuryClient, generateInvoice, payInvoice } from '@/lib/lightning/nwc';
+
+/**
+ * @section 7: deterministic function for compensation calculation.
+ * Ensures the calculation is transparent and independent of platform discretion.
+ */
+function calculateDeterministicCompensation(creditedSeconds: number): number {
+    const satsPerSec = Number(process.env.DEFAULT_SATS_PER_SECOND) || 1;
+    let amt = creditedSeconds * satsPerSec;
+
+    // Safety cap for MVP as per system configuration
+    const MAX_PAYOUT = 1000;
+    return Math.min(amt, MAX_PAYOUT);
+}
 
 export async function POST(request: Request) {
     try {
         const { sessionId } = await request.json();
 
-        // 1. Validate Session & Eligibility
+        // 1. Validate Session & Eligibility (Section 6)
         const session = await prisma.session.findUnique({
             where: { id: sessionId },
             include: { track: { include: { artist: { include: { wallet: true } } } } }
@@ -22,13 +41,10 @@ export async function POST(request: Request) {
         }
 
         const existing = await prisma.payout.findFirst({ where: { sessionId } });
-        if (existing) return NextResponse.json({ error: 'Already paid' }); // Or check status
+        if (existing) return NextResponse.json({ error: 'Already paid' });
 
-        // 2. Calculate Amount
-        const satsPerSec = Number(process.env.DEFAULT_SATS_PER_SECOND) || 1;
-        let amt = session.creditedSeconds * satsPerSec;
-        // Cap at e.g. 1000 sats for MVP safety
-        if (amt > 1000) amt = 1000;
+        // 2. Calculate Amount (Section 7)
+        const amt = calculateDeterministicCompensation(session.creditedSeconds);
 
         // 3. Connect Artist Wallet & Generate Invoice
         const artistClient = await createNwcClient(artistWallet.encryptedNwc, artistWallet.iv, artistWallet.authTag);

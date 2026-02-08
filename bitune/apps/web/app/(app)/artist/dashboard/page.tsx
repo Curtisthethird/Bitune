@@ -1,8 +1,8 @@
 'use client';
 
-import Dashboard from '../artist/dashboard/Dashboard';
+import Dashboard from './Dashboard';
 
-export default function AnalyticsPage() {
+export default function ArtistDashboardPage() {
     return (
         <div className="page-container p-8">
             <Dashboard />

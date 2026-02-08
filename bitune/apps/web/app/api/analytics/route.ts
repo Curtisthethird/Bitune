@@ -33,7 +33,7 @@ export async function GET(request: Request) {
             });
         }
 
-        const [totalSessions, totalPayouts, distinctListeners] = await Promise.all([
+        const [totalSessions, totalPayouts, totalPurchases, totalTips, distinctListeners] = await Promise.all([
             prisma.session.count({
                 where: { trackId: { in: trackIds } }
             }),
@@ -44,31 +44,57 @@ export async function GET(request: Request) {
                 },
                 _sum: { amountSats: true }
             }),
+            prisma.purchase.aggregate({
+                where: { trackId: { in: trackIds } },
+                _sum: { amount: true }
+            }),
+            prisma.tip.aggregate({
+                where: { artistPubkey: userPubkey, status: 'COMPLETED' },
+                _sum: { amountSats: true }
+            }),
             prisma.session.groupBy({
                 by: ['listenerPubkey'],
                 where: { trackId: { in: trackIds } }
             })
         ]);
 
-        // 2. Chart Data (Last 30 Days Earnings)
+        const poeEarnings = totalPayouts._sum.amountSats || 0;
+        const purchaseEarnings = totalPurchases._sum.amount || 0;
+        const tipEarnings = totalTips._sum.amountSats || 0;
+        const totalSats = poeEarnings + purchaseEarnings + tipEarnings;
+
+        // 2. Chart Data (Last 30 Days Earnings - Combined)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const dailyPayouts = await prisma.payout.findMany({
-            where: {
-                session: { trackId: { in: trackIds } },
-                status: 'COMPLETED',
-                createdAt: { gte: thirtyDaysAgo }
-            },
-            select: {
-                createdAt: true,
-                amountSats: true
-            }
-        });
+        const [payouts, purchases, tips] = await Promise.all([
+            prisma.payout.findMany({
+                where: {
+                    session: { trackId: { in: trackIds } },
+                    status: 'COMPLETED',
+                    createdAt: { gte: thirtyDaysAgo }
+                },
+                select: { createdAt: true, amountSats: true }
+            }),
+            prisma.purchase.findMany({
+                where: {
+                    trackId: { in: trackIds },
+                    createdAt: { gte: thirtyDaysAgo }
+                },
+                select: { createdAt: true, amount: true }
+            }),
+            prisma.tip.findMany({
+                where: {
+                    artistPubkey: userPubkey,
+                    status: 'COMPLETED',
+                    createdAt: { gte: thirtyDaysAgo }
+                },
+                select: { createdAt: true, amountSats: true }
+            })
+        ]);
 
-        // Group by Date
+        // Group everything by Date
         const earningsMap = new Map<string, number>();
-        // Initialize last 30 days with 0
         for (let i = 0; i < 30; i++) {
             const d = new Date();
             d.setDate(d.getDate() - i);
@@ -76,18 +102,24 @@ export async function GET(request: Request) {
             earningsMap.set(dateStr, 0);
         }
 
-        dailyPayouts.forEach(p => {
+        payouts.forEach(p => {
             const dateStr = p.createdAt.toISOString().split('T')[0];
-            if (earningsMap.has(dateStr)) {
-                earningsMap.set(dateStr, earningsMap.get(dateStr)! + p.amountSats);
-            }
+            if (earningsMap.has(dateStr)) earningsMap.set(dateStr, earningsMap.get(dateStr)! + p.amountSats);
+        });
+        purchases.forEach(p => {
+            const dateStr = p.createdAt.toISOString().split('T')[0];
+            if (earningsMap.has(dateStr)) earningsMap.set(dateStr, earningsMap.get(dateStr)! + p.amount);
+        });
+        tips.forEach(t => {
+            const dateStr = t.createdAt.toISOString().split('T')[0];
+            if (earningsMap.has(dateStr)) earningsMap.set(dateStr, earningsMap.get(dateStr)! + t.amountSats);
         });
 
         const chartData = Array.from(earningsMap.entries())
             .map(([date, amount]) => ({ date, amount }))
             .sort((a, b) => a.date.localeCompare(b.date));
 
-        // 3. Top Tracks
+        // 3. Top Tracks (By Streams)
         const sessionsByTrack = await prisma.session.groupBy({
             by: ['trackId'],
             where: { trackId: { in: trackIds } },
@@ -108,8 +140,13 @@ export async function GET(request: Request) {
         return NextResponse.json({
             stats: {
                 totalStreams: totalSessions,
-                totalSats: totalPayouts._sum.amountSats || 0,
-                totalListeners: distinctListeners.length
+                totalSats: totalSats,
+                totalListeners: distinctListeners.length,
+                breakdown: {
+                    poe: poeEarnings,
+                    sales: purchaseEarnings,
+                    tips: tipEarnings
+                }
             },
             chartData,
             topTracks

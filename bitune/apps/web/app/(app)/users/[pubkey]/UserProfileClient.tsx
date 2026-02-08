@@ -31,6 +31,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
     const [supporters, setSupporters] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showTipModal, setShowTipModal] = useState(false);
+    const [copied, setCopied] = useState(false);
     const { play } = usePlayer();
 
     useEffect(() => {
@@ -77,6 +78,12 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
         } catch (err) {
             console.error(err);
         }
+    };
+
+    const handleShare = () => {
+        navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
     if (loading) return (
@@ -137,6 +144,10 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
                         <FollowButton targetPubkey={profile.pubkey} />
                         <button className="btn-secondary profile-tip-btn" onClick={() => setShowTipModal(true)}>
                             ⚡ Tip
+                        </button>
+                        <button className="btn-secondary share-btn-profile" onClick={handleShare}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z" /></svg>
+                            {copied ? 'Copied' : 'Share'}
                         </button>
                         <button className="btn-secondary message-btn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" /></svg>
@@ -411,6 +422,17 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
                     color: #000 !important;
                     transform: translateY(-2px);
                     box-shadow: 0 8px 20px rgba(247, 147, 26, 0.4);
+                }
+
+                .share-btn-profile {
+                    padding: 0 1.5rem;
+                    height: 48px;
+                    border-radius: 24px;
+                    font-weight: 800;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    min-width: 100px;
                 }
 
                 /* Content Grid */
