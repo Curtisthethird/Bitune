@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { NostrSigner } from '../../../lib/nostr/signer';
-import { KeyManager } from '../../../lib/nostr/key-manager';
+import { NostrSigner } from '@/lib/nostr/signer';
+import { KeyManager } from '@/lib/nostr/key-manager';
 
 interface User {
     pubkey: string;
@@ -11,6 +11,7 @@ interface User {
     about?: string;
     picture?: string;
     isArtist: boolean;
+    isVerified: boolean;
 }
 
 export default function ProfilePage() {
@@ -39,7 +40,7 @@ export default function ProfilePage() {
                 setAbout(data.user.about || '');
                 setPicture(data.user.picture || '');
             } else {
-                setUser({ pubkey, isArtist: false }); // New user view
+                setUser({ pubkey, isArtist: false, isVerified: false }); // New user view
             }
         } catch (e) {
             console.error(e);
@@ -114,7 +115,7 @@ export default function ProfilePage() {
                             <span className="pubkey-badge" title={user.pubkey}>
                                 {user.pubkey.slice(0, 8)}...{user.pubkey.slice(-8)}
                             </span>
-                            {user.isArtist && <span className="artist-badge">Verified Artist</span>}
+                            {user.isVerified && <span className="artist-badge">Verified Artist</span>}
                         </div>
                     </div>
 

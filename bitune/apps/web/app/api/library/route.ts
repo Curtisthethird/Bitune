@@ -29,6 +29,21 @@ export async function GET(request: Request) {
             return NextResponse.json({ tracks });
         }
 
+        if (type === 'following') {
+            const follows = await prisma.follow.findMany({
+                where: { followerPubkey: userPubkey },
+                include: {
+                    following: {
+                        select: { name: true, picture: true, pubkey: true, about: true, isVerified: true }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+
+            const artists = follows.map(f => f.following);
+            return NextResponse.json({ artists });
+        }
+
         // Default: likes
         const likes = await prisma.like.findMany({
             where: { userPubkey },
@@ -36,7 +51,7 @@ export async function GET(request: Request) {
                 track: {
                     include: {
                         artist: {
-                            select: { name: true, picture: true, pubkey: true }
+                            select: { name: true, picture: true, pubkey: true, isVerified: true }
                         }
                     }
                 }

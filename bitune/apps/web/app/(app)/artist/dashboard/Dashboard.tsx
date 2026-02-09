@@ -14,10 +14,12 @@ export default function Dashboard({ initialData }: DashboardProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'fans' | 'releases'>('overview');
     const [analytics, setAnalytics] = useState<any>(initialData || null);
     const [fans, setFans] = useState<any[]>([]);
+    const [activity, setActivity] = useState<any[]>([]);
     const [loading, setLoading] = useState(!initialData);
 
     useEffect(() => {
         if (!initialData) fetchData();
+        fetchActivity();
     }, []);
 
     useEffect(() => {
@@ -45,6 +47,19 @@ export default function Dashboard({ initialData }: DashboardProps) {
             console.error(e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchActivity = async () => {
+        try {
+            const authHeader = await NostrSigner.generateAuthHeader('GET', window.location.origin + '/api/artist/activity');
+            const res = await fetch('/api/artist/activity', {
+                headers: { 'Authorization': authHeader }
+            });
+            const data = await res.json();
+            setActivity(data.activity || []);
+        } catch (e) {
+            console.error('Failed to fetch activity', e);
         }
     };
 
@@ -85,7 +100,12 @@ export default function Dashboard({ initialData }: DashboardProps) {
             <div className="dashboard-header mb-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-4xl font-black tracking-tighter mb-2">ARTIST COMMAND</h1>
+                        <div className="flex items-center gap-3 mb-2">
+                            <h1 className="text-4xl font-black tracking-tighter">ARTIST COMMAND</h1>
+                            {analytics?.artist?.isVerified && (
+                                <span className="bg-accent text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Verified</span>
+                            )}
+                        </div>
                         <p className="text-muted text-sm font-medium opacity-60">Empowering your independence on the Nostr protocol.</p>
                     </div>
                     <div className="tabs-premium flex p-1 bg-white/5 rounded-2xl">
@@ -203,13 +223,50 @@ export default function Dashboard({ initialData }: DashboardProps) {
                             </div>
                         </div>
                     </div>
+
+                    {/* Recent Activity Feed */}
+                    <div className="glass rounded-3xl p-8 border border-white/5">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-bold">Recent Activity</h3>
+                            <span className="text-[10px] font-black opacity-40 uppercase tracking-widest">Protocol Stream Live</span>
+                        </div>
+                        <div className="space-y-4">
+                            {activity.length > 0 ? (
+                                activity.map((item, i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 bg-white/2 rounded-2xl hover:bg-white/5 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-xl">
+                                                {item.type === 'tip' ? '⚡' : item.type === 'follow' ? '👤' : '📀'}
+                                            </div>
+                                            <div>
+                                                <div className="text-sm">
+                                                    <span className="font-bold">{item.user?.name || 'Anonymous'}</span>
+                                                    {item.type === 'tip' && ` tipped you ${item.amount} Sats`}
+                                                    {item.type === 'follow' && ` started following you`}
+                                                    {item.type === 'purchase' && ` purchased ${item.trackTitle}`}
+                                                </div>
+                                                <div className="text-[10px] opacity-40">{new Date(item.date).toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                        {item.message && (
+                                            <div className="hidden md:block text-xs italic opacity-60 px-4 border-l border-white/10 max-w-xs truncate">
+                                                "{item.message}"
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="p-12 text-center opacity-30 italic text-sm">Waiting for incoming protocol activity...</div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
             {activeTab === 'fans' && (
                 <div className="fans-view space-y-8">
-                    <div className="glass rounded-3xl border border-white/5 overflow-hidden">
-                        <table className="w-full text-left">
+                    <div className="glass rounded-3xl border border-white/5 overflow-x-auto">
+                        <table className="w-full text-left min-w-[800px]">
                             <thead className="bg-white/5 text-[10px] font-black uppercase tracking-widest opacity-40 border-b border-white/5">
                                 <tr>
                                     <th className="px-8 py-5">Fan Identity</th>
@@ -256,8 +313,8 @@ export default function Dashboard({ initialData }: DashboardProps) {
 
             {activeTab === 'releases' && (
                 <div className="releases-view space-y-8">
-                    <div className="glass rounded-3xl border border-white/5 overflow-hidden">
-                        <table className="w-full text-left">
+                    <div className="glass rounded-3xl border border-white/5 overflow-x-auto">
+                        <table className="w-full text-left min-w-[600px]">
                             <thead className="bg-white/5 text-[10px] font-black uppercase tracking-widest opacity-40 border-b border-white/5">
                                 <tr>
                                     <th className="px-8 py-5">Release</th>

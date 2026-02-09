@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { NostrSigner } from '@/lib/nostr/signer';
 import TrackCard from '@/components/TrackCard';
+import ArtistCard from '@/components/ArtistCard';
 import Link from 'next/link';
 
 export default function LibraryPage() {
-    const [activeTab, setActiveTab] = useState<'playlists' | 'likes' | 'purchases'>('likes');
+    const [activeTab, setActiveTab] = useState<'playlists' | 'likes' | 'purchases' | 'following'>('likes');
     const [likes, setLikes] = useState<any[]>([]);
     const [purchases, setPurchases] = useState<any[]>([]);
+    const [following, setFollowing] = useState<any[]>([]);
     const [playlists, setPlaylists] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -30,12 +32,13 @@ export default function LibraryPage() {
         }
     };
 
-    const fetchData = async (type: 'playlists' | 'likes' | 'purchases') => {
+    const fetchData = async (type: 'playlists' | 'likes' | 'purchases' | 'following') => {
         setLoading(true);
         try {
             let endpoint = '';
             if (type === 'likes') endpoint = '/api/library?type=likes';
             else if (type === 'purchases') endpoint = '/api/library?type=purchases';
+            else if (type === 'following') endpoint = '/api/library?type=following';
             else endpoint = '/api/playlists';
 
             const event = {
@@ -54,6 +57,7 @@ export default function LibraryPage() {
 
             if (type === 'likes') setLikes(data.tracks || []);
             else if (type === 'purchases') setPurchases(data.tracks || []);
+            else if (type === 'following') setFollowing(data.artists || []);
             else setPlaylists(data.playlists || []);
 
         } catch (e) {
@@ -85,6 +89,12 @@ export default function LibraryPage() {
                         Liked Tracks
                     </button>
                     <button
+                        className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'following' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
+                        onClick={() => setActiveTab('following')}
+                    >
+                        Following
+                    </button>
+                    <button
                         className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'purchases' ? 'bg-accent text-black' : 'text-muted hover:text-white'}`}
                         onClick={() => setActiveTab('purchases')}
                     >
@@ -111,6 +121,24 @@ export default function LibraryPage() {
                         <div className="grid-layout">
                             {likes.map(track => (
                                 <TrackCard key={track.id} track={track} artist={track.artist} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'following' && (
+                <div className="following-view">
+                    {following.length === 0 ? (
+                        <div className="empty-state text-center py-12 bg-white/5 rounded-xl">
+                            <h3 className="text-xl font-bold mb-2">Not following check anyone yet</h3>
+                            <p className="text-muted mb-4">Follow your favorite artists to stay updated.</p>
+                            <Link href="/feed" className="btn-primary btn-sm inline-flex">Find Artists</Link>
+                        </div>
+                    ) : (
+                        <div className="grid-layout">
+                            {following.map(artist => (
+                                <ArtistCard key={artist.pubkey} artist={artist} />
                             ))}
                         </div>
                     )}

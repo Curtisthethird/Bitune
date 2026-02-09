@@ -17,12 +17,13 @@ export async function GET(request: Request) {
                     orderBy: { createdAt: 'desc' },
                     include: {
                         artist: {
-                            select: { name: true, picture: true }
+                            select: { name: true, picture: true, pubkey: true, isVerified: true }
                         }
                     }
                 }),
                 prisma.user.findMany({
                     where: { isArtist: true },
+                    select: { name: true, picture: true, pubkey: true, about: true, isVerified: true },
                     take: 6,
                     orderBy: { tracks: { _count: 'desc' } }
                 })
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
                 take: 10,
                 include: {
                     artist: {
-                        select: { name: true, picture: true }
+                        select: { name: true, picture: true, pubkey: true, isVerified: true }
                     }
                 }
             }),
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
                         { about: { contains: query, mode: 'insensitive' } },
                     ]
                 },
+                select: { name: true, picture: true, pubkey: true, about: true, isVerified: true },
                 take: 5
             })
         ]);
