@@ -40,84 +40,97 @@ export default function TopBar() {
 
       <style jsx>{`
         .topbar {
-          height: 64px;
+          height: 80px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 2rem;
+          padding: 0 3rem;
           position: sticky;
           top: 0;
           z-index: 40;
-          background: rgba(9, 9, 11, 0.8);
-          backdrop-filter: blur(12px);
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(20px);
+          border-bottom: 1px solid var(--border);
         }
 
         .search-container {
           position: relative;
-          width: 400px;
+          width: 440px;
         }
 
         .search-icon {
           position: absolute;
-          left: 12px;
+          left: 16px;
           top: 50%;
           transform: translateY(-50%);
-          font-size: 0.9rem;
-          opacity: 0.5;
+          font-size: 1rem;
+          opacity: 0.4;
+          pointer-events: none;
         }
 
         .search-input {
           width: 100%;
-          padding: 0.6rem 1rem 0.6rem 2.5rem;
-          border-radius: var(--radius-full);
-          background: rgba(255, 255, 255, 0.05);
+          padding: 0.8rem 1rem 0.8rem 3rem;
+          border-radius: var(--radius-md);
+          background: rgba(255, 255, 255, 0.04);
           border: 1px solid transparent;
           color: var(--foreground);
-          font-size: 0.9rem;
+          font-size: 0.95rem;
           outline: none;
-          transition: all 0.2s;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .search-input:focus {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: var(--accent);
-          box-shadow: 0 0 0 2px var(--accent-glow);
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(247, 147, 26, 0.3);
+          box-shadow: 0 0 20px rgba(247, 147, 26, 0.05);
         }
 
         .user-actions {
           display: flex;
           align-items: center;
-          gap: 1.5rem;
+          gap: 2rem;
         }
 
         .upload-btn {
-          background: transparent;
-          color: var(--foreground);
-          border: 1px solid var(--border);
-          padding: 0.5rem 1rem;
+          background: var(--accent);
+          color: black;
+          border: none;
+          padding: 0.6rem 1.4rem;
           border-radius: var(--radius-full);
-          font-size: 0.85rem;
+          font-size: 0.9rem;
+          font-weight: 700;
           cursor: pointer;
-          transition: 0.2s;
+          transition: 0.3s;
+          font-family: 'Outfit', sans-serif;
         }
 
         .upload-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: var(--foreground);
+          background: var(--accent-light);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 15px var(--accent-glow);
         }
 
         .avatar-circle {
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, var(--accent), #c084fc);
-          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+          border: 1px solid var(--border);
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: bold;
-          font-size: 0.85rem;
-          color: white;
+          font-weight: 800;
+          font-size: 0.9rem;
+          color: var(--foreground);
           cursor: pointer;
+          transition: all 0.3s;
+          font-family: 'Outfit', sans-serif;
+        }
+
+        .avatar-circle:hover {
+            border-color: var(--accent);
+            transform: scale(1.05);
         }
       `}</style>
     </header>

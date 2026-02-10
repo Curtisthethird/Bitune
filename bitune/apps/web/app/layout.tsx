@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ToastProvider";
 import Sidebar from "@/components/Sidebar";
@@ -9,43 +8,33 @@ import MobileNav from "@/components/MobileNav";
 import OnboardingGuide from "@/components/OnboardingGuide";
 import { PlayerProvider } from "@/context/PlayerContext";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: {
-    default: "BitTune - Stream Music, Earn Bitcoin",
+    default: "BitTune | The Future of Sound",
     template: "%s | BitTune"
   },
-  description: "The decentralized music marketplace. Stream your favorite tracks and earn Bitcoin. Direct-to-fan sales and social engagement powered by Nostr.",
+  description: "Experience the next generation of music. Stream, support artists with Bitcoin, and own your collection on the Lightning Network.",
   keywords: ["Bitcoin", "Lightning Network", "Music", "Streaming", "Decentralized", "Nostr", "BitTune"],
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "https://bittune.com",
     siteName: "BitTune",
-    title: "BitTune - Decentralized Music Streaming",
-    description: "Stream Music. Earn Bitcoin.",
+    title: "BitTune | Decentralized Music Marketplace",
+    description: "Stream Music. Support Artists. Earn Bitcoin.",
     images: [
       {
-        url: "/og-image.png", // We should eventually generate this or use a default
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "BitTune - Earn while you listen",
+        alt: "BitTune - The Future of Sound",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "BitTune - Stream Music, Earn Bitcoin",
+    title: "BitTune | Stream Music, Earn Bitcoin",
     description: "Direct-to-fan music marketplace on the Lightning Network.",
     images: ["/og-image.png"],
   },
@@ -56,12 +45,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Mock track for visual dev, eventually this comes from context or store
-  const currentTrack = null;
-
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body>
         <ToastProvider>
           <PlayerProvider>
             <div className="app-container">
