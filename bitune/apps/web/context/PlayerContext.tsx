@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Track } from '@/lib/shared/types';
 
 interface PlayerContextType {
@@ -24,18 +24,37 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const [queue, setQueue] = useState<Track[]>([]);
     const [history, setHistory] = useState<Track[]>([]);
 
+    // Load history from localStorage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('bittune_history');
+        if (saved) {
+            try {
+                setHistory(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to parse history", e);
+            }
+        }
+    }, []);
+
+    // Save history to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('bittune_history', JSON.stringify(history.slice(0, 20)));
+    }, [history]);
+
     const play = (track: Track, newQueue?: Track[]) => {
         if (currentTrack?.id === track.id) {
             setIsPlaying(true);
         } else {
             if (currentTrack) {
-                setHistory(prev => [currentTrack, ...prev]);
+                // Add current track to history, ensuring no duplicates at the top
+                setHistory(prev => {
+                    const newHistory = [currentTrack, ...prev.filter(t => t.id !== currentTrack.id)];
+                    return newHistory.slice(0, 20);
+                });
             }
             setCurrentTrack(track);
             setIsPlaying(true);
             if (newQueue) {
-                // If a new queue is provided (e.g. clicking a song in an album), 
-                // set queue to the tracks AFTER this one in the list.
                 const trackIndex = newQueue.findIndex(t => t.id === track.id);
                 if (trackIndex !== -1) {
                     setQueue(newQueue.slice(trackIndex + 1));
@@ -57,12 +76,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             const nextTrack = queue[0];
             setQueue(prev => prev.slice(1));
             if (currentTrack) {
-                setHistory(prev => [currentTrack, ...prev]);
+                setHistory(prev => {
+                    const newHistory = [currentTrack, ...prev.filter(t => t.id !== currentTrack.id)];
+                    return newHistory.slice(0, 20);
+                });
             }
             setCurrentTrack(nextTrack);
             setIsPlaying(true);
         } else {
-            // End of queue
             setIsPlaying(false);
         }
     };

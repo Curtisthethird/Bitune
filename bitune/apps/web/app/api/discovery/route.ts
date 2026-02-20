@@ -48,6 +48,17 @@ export async function GET() {
             }
         });
 
+        // 4. Curated Playlists (Random public playlists)
+        const playlists = await prisma.playlist.findMany({
+            where: { isPublic: true },
+            take: 4,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                owner: { select: { name: true } },
+                _count: { select: { tracks: true } }
+            }
+        });
+
         return NextResponse.json({
             sections: [
                 {
@@ -56,6 +67,13 @@ export async function GET() {
                     subtitle: 'The latest drops from BitTune artists',
                     type: 'track',
                     items: newReleases
+                },
+                {
+                    id: 'curated-playlists',
+                    title: 'Curated for You',
+                    subtitle: 'Hand-picked collections',
+                    type: 'playlist',
+                    items: playlists
                 },
                 {
                     id: 'trending-artists',

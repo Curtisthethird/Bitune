@@ -5,6 +5,7 @@ import { NostrSigner } from '@/lib/nostr/signer';
 import TrackCard from '@/components/TrackCard';
 import ArtistCard from '@/components/ArtistCard';
 import Link from 'next/link';
+import Skeleton from '@/components/Skeleton';
 
 export default function LibraryPage() {
     const [activeTab, setActiveTab] = useState<'playlists' | 'likes' | 'purchases' | 'following'>('likes');
@@ -67,7 +68,26 @@ export default function LibraryPage() {
         }
     };
 
-    if (loading) return <div className="p-12 text-center text-muted">Loading Library...</div>;
+
+
+    if (loading) return (
+        <div className="page-container fade-in">
+            <div className="library-header flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <Skeleton height="3rem" width="250px" borderRadius="8px" />
+                <div className="flex gap-2">
+                    {[1, 2, 3, 4].map(i => <Skeleton key={i} height="2.5rem" width="100px" borderRadius="99px" />)}
+                </div>
+            </div>
+            <div className="grid-layout">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                    <div key={i} style={{ aspectRatio: '1/1.4' }}>
+                        <Skeleton height="100%" borderRadius="16px" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
 
     if (!isAuthenticated) return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">

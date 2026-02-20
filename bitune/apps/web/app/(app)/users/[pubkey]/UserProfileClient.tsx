@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
+import Skeleton from '@/components/Skeleton';
 import FollowButton from '@/components/FollowButton';
 import TipModal from '@/components/TipModal';
 import { usePlayer } from '@/context/PlayerContext';
@@ -87,8 +88,27 @@ export default function UserProfilePage({ params }: { params: Promise<{ pubkey: 
     };
 
     if (loading) return (
-        <div className="page-container" style={{ padding: '5rem' }}>
-            <div className="glass glass-card p-10">Loading profile...</div>
+        <div className="page-container" style={{ padding: '2rem' }}>
+            <div className="profile-hero glass-card" style={{ height: '400px', display: 'flex', alignItems: 'flex-end', padding: '3rem' }}>
+                <div style={{ display: 'flex', gap: '2rem', width: '100%', alignItems: 'flex-end' }}>
+                    <Skeleton width="240px" height="240px" borderRadius="24px" />
+                    <div style={{ flex: 1, paddingBottom: '1rem' }}>
+                        <Skeleton width="100px" height="24px" borderRadius="20px" className="mb-4" />
+                        <Skeleton width="300px" height="60px" className="mb-4" />
+                        <Skeleton width="400px" height="20px" className="mb-8" />
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <Skeleton width="120px" height="48px" borderRadius="24px" />
+                            <Skeleton width="100px" height="48px" borderRadius="24px" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style={{ marginTop: '3rem' }}>
+                <Skeleton width="200px" height="32px" className="mb-6" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {[1, 2, 3].map(i => <Skeleton key={i} height="80px" borderRadius="12px" />)}
+                </div>
+            </div>
         </div>
     );
 
