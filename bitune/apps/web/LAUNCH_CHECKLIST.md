@@ -15,6 +15,19 @@ Ensure these variables are set in your deployment environment (Vercel, Railway, 
 - `S3_SECRET_ACCESS_KEY`: Your IAM secret key.
 - `S3_PUBLIC_BASE_URL`: Public URL to access the bucket assets.
 
+#### CORS Configuration (Critical for Presigned Uploads)
+Because BitTune uses browser-direct uploads to bypass Vercel limits, you **MUST** configure your S3/R2 bucket's CORS policy:
+```json
+[
+  {
+    "AllowedOrigins": ["https://yourdomain.com", "http://localhost:3000"],
+    "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"]
+  }
+]
+```
+
 ### Proof of Engagement (Optional Tuning)
 - `POE_HEARTBEAT_SECONDS`: Default `5`
 - `POE_ELIGIBLE_SECONDS`: Default `60` (Time before a stream counts)

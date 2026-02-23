@@ -69,55 +69,104 @@ export default function TrackUploadForm({ title: pageTitle = "Upload Track", des
         if (!title || !file) return;
 
         setIsUploading(true);
-        showToast('Signing upload...', 'info');
+        showToast('Preparing upload...', 'info');
 
         try {
-            // 1. Sign
+            // 1. Authenticate with Nostr
             let pubkey;
             try {
                 pubkey = await NostrSigner.getPublicKey();
             } catch (err) {
-                // If getPublicKey fails but we are in dev/test with mock data, fallback
-                throw err;
+                throw new Error('Please connect your Nostr wallet to upload.');
             }
-            const apiUrl = window.location.origin + '/api/upload/audio';
+
+            // Provide a generic URL for the auth token since we hit multiple endpoints
+            const authUrl = window.location.origin + '/api/upload';
             const event: any = {
                 kind: 27235,
                 created_at: Math.floor(Date.now() / 1000),
-                tags: [['u', apiUrl], ['method', 'POST']],
-                content: 'Upload Track',
+                tags: [['u', authUrl], ['method', 'POST']],
+                content: 'Authenticate Upload',
                 pubkey
             };
-            let signedEvent;
-            try {
-                signedEvent = await NostrSigner.sign(event);
-            } catch (err) {
-                throw err;
-            }
+
+            const signedEvent = await NostrSigner.sign(event);
             const token = btoa(JSON.stringify(signedEvent));
 
-            // 2. Upload
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('title', title);
-            formData.append('title', title);
-            formData.append('description', description);
-            formData.append('genre', genre);
-            formData.append('explicit', explicit.toString());
-            if (cover) formData.append('cover', cover);
+            // Helper to handle presigned uploads
+            const uploadFileViaPresign = async (f: File, type: 'audio' | 'cover') => {
+                showToast(`Requesting upload URL for ${type}...`, 'info');
+                const presignRes = await fetch('/api/upload/presign', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Nostr ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: f.name,
+                        contentType: f.type,
+                        type
+                    })
+                });
 
-            const res = await fetch('/api/upload/audio', {
-                method: 'POST',
-                headers: { 'Authorization': `Nostr ${token}` },
-                body: formData
-            });
+                if (!presignRes.ok) {
+                    const err = await presignRes.json();
+                    throw new Error(err.error || `Failed to get upload URL for ${type}`);
+                }
 
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Upload failed');
+                const { uploadUrl, finalUrl } = await presignRes.json();
+
+                showToast(`Uploading ${type}...`, 'info');
+                // Direct PUT to S3
+                const s3Res = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': f.type
+                    },
+                    body: f
+                });
+
+                if (!s3Res.ok) {
+                    throw new Error(`Failed to upload ${type} to storage provider`);
+                }
+
+                return finalUrl;
+            };
+
+            // 2. Upload Files directly to S3
+            showToast('Uploading audio file securely...', 'info');
+            const audioUrl = await uploadFileViaPresign(file, 'audio');
+
+            let coverUrl = null;
+            if (cover) {
+                coverUrl = await uploadFileViaPresign(cover, 'cover');
             }
 
-            const data = await res.json();
+            // 3. Finalize Database Record
+            showToast('Finalizing track release...', 'info');
+            const finalizeRes = await fetch('/api/upload/audio', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Nostr ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title,
+                    description,
+                    genre,
+                    explicit,
+                    audioUrl,
+                    coverUrl,
+                    authUrl // Pass the URL we signed for validation
+                })
+            });
+
+            if (!finalizeRes.ok) {
+                const err = await finalizeRes.json();
+                throw new Error(err.error || 'Failed to finalize track release');
+            }
+
+            const data = await finalizeRes.json();
             showToast('Published Successfully!', 'success');
 
             if (onSuccess) {
@@ -128,7 +177,7 @@ export default function TrackUploadForm({ title: pageTitle = "Upload Track", des
 
         } catch (e: any) {
             console.error(e);
-            showToast(e.message, 'error');
+            showToast(e.message || 'Upload failed due to an unexpected error.', 'error');
             setIsUploading(false);
         }
     };
