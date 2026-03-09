@@ -5,7 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import TopBar from "@/components/TopBar";
 import Player from "@/components/Player";
 import MobileNav from "@/components/MobileNav";
-import OnboardingGuide from "@/components/OnboardingGuide";
+
 import { PlayerProvider } from "@/context/PlayerContext";
 
 export const metadata: Metadata = {
@@ -63,7 +63,7 @@ export default function RootLayout({
 
               <MobileNav />
               <Player />
-              <OnboardingGuide />
+
             </div>
           </PlayerProvider>
         </ToastProvider>

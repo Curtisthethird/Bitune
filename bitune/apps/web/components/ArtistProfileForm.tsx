@@ -66,6 +66,7 @@ export default function ArtistProfileForm({ onSuccess }: ArtistProfileFormProps)
 
         } catch (error: any) {
             console.error('Profile creation error:', error);
+            console.log(error);
             showToast(error.message, 'error');
         } finally {
             setIsLoading(false);

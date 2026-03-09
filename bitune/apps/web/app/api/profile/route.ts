@@ -46,12 +46,14 @@ export async function PUT(request: Request) {
                 pubkey,
                 name,
                 about,
-                picture
+                picture,
+                isArtist: true
             },
             update: {
                 name,
                 about,
-                picture
+                picture,
+                isArtist: true
             }
         });
 
